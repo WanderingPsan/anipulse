@@ -12,7 +12,7 @@ def test_reference_is_sorted_by_kind_then_id(tmp_path: Path) -> None:
         {"genre_id": 8, "name": "Drama", "kind": "genre"},
         {"genre_id": 2, "name": "Adventure", "kind": "genre"},
     ]
-    path = tmp_path / "reference" / "jikan_genres.json"
+    path = tmp_path / "reference" / "mal_genres.json"
 
     write_genre_reference(records, path)
 

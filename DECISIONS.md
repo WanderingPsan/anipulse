@@ -218,3 +218,22 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   list of columns we keep and the one place to edit if the source renames a column.
 - Interview one-liner: "My reader validates the schema of the file before loading it, so bad
   input fails fast with a message that says exactly what is wrong."
+
+## D-017: The live API is Tenrai, and its base URL is a setting
+- Component: 1 (follow-up)
+- Decision: The client now calls Tenrai (`https://api.tenrai.org/v1`), a Jikan v4-compatible
+  API, instead of Jikan. The module is renamed `ingest/anime_api.py`, the base URL comes from
+  the `ANIME_API_BASE_URL` environment variable (default: Tenrai), and the genre reference is
+  renamed `data/reference/mal_genres.json`.
+- Why: Jikan's public API shut down on 2026-10-01. Tenrai returns the same shapes, so only the
+  address had to change. Making the address a setting means the next switch needs no code
+  change. The genre IDs belong to MyAnimeList (Adventure is 2 everywhere), so the file is
+  named after MyAnimeList, not after the server that delivered it.
+- Alternatives considered: Keeping the module name `jikan.py` and only changing the URL
+  (misleading for a reader). Hosting our own Jikan server (more work and hosting cost for a
+  refresh layer that is optional by design).
+- Trade-off: Tenrai does not publish rate limits, so we keep Jikan's (1 request per second),
+  which may be slower than needed. Schema and command names that still say "jikan"
+  (`data_source = 'jikan'`, `--jikan-pages`) are left unchanged for now.
+- Interview one-liner: "When my API shut down, I swapped in a compatible one by changing a
+  single environment variable, and my tests kept passing because they never hit the network."

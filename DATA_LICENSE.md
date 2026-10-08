@@ -16,6 +16,7 @@ https://opendatacommons.org/licenses/odbl/1-0/
 
 Contains data from Anime Database (July 2025) by sazzadsiddiquelikhon on Kaggle, available
 under the ODbL v1.0. Original data from MyAnimeList via the Jikan API.
+Refreshed data from MyAnimeList via the Tenrai API.
 
 Source dataset:
 https://www.kaggle.com/datasets/sazzadsiddiquelikhon/myanimelist-anime-database-july-2025

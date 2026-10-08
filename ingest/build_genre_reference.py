@@ -1,7 +1,7 @@
-"""Write data/reference/jikan_genres.json, the list of every MyAnimeList genre-like tag.
+"""Write data/reference/mal_genres.json, the list of every MyAnimeList genre-like tag.
 
 Run once with `python -m ingest.build_genre_reference` and commit the output, so later
-builds never need Jikan to be up just to know that Adventure is genre 2.
+builds never need the anime API to be up just to know that Adventure is genre 2.
 """
 
 import json
@@ -12,9 +12,9 @@ from typing import Any
 
 import requests
 
-from ingest.jikan import get_genre_reference
+from ingest.anime_api import get_genre_reference
 
-REFERENCE_PATH = Path("data/reference/jikan_genres.json")
+REFERENCE_PATH = Path("data/reference/mal_genres.json")
 
 
 def write_genre_reference(records: list[dict[str, Any]], path: Path) -> None:
@@ -29,7 +29,7 @@ def main() -> int:
     try:
         records = get_genre_reference()
     except requests.RequestException as err:
-        print(f"Could not reach Jikan, so nothing was written: {err}")
+        print(f"Could not reach the anime API, so nothing was written: {err}")
         return 1
     write_genre_reference(records, REFERENCE_PATH)
     print(f"Saved {len(records)} tags to {REFERENCE_PATH}")

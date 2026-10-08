@@ -1,28 +1,46 @@
-"""A small client for the Jikan v4 API (an unofficial MyAnimeList API).
+"""A small client for a Jikan v4-compatible anime API (an unofficial MyAnimeList API).
 
-Jikan is free but strict and sometimes flaky, so every request is throttled, and only
-errors that might go away on their own are retried.
+The default server is Tenrai. Any server that speaks the Jikan v4 format works, so the base
+URL comes from the ANIME_API_BASE_URL environment variable. Free APIs like this are strict
+and sometimes flaky, so every request is throttled, and only errors that might go away on
+their own are retried.
 """
 
 import logging
+import os
 import time
 from typing import Any, NamedTuple
 
 import requests
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://api.jikan.moe/v4"
+DEFAULT_BASE_URL = "https://api.tenrai.org/v1"
 
-# Jikan allows 3 requests per second AND 60 per minute. 0.5 s respects the first limit but
-# a long run would hit the second (120 per minute). 1.0 s keeps us under both.
+
+def base_url_from_env() -> str:
+    """Read the API's base URL from the environment, falling back to Tenrai.
+
+    A trailing slash is removed so "…/v1/" and "…/v1" build the same request URLs.
+    """
+    return os.getenv("ANIME_API_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
+
+
+# Load .env first so a value saved there counts, not only one set in the shell.
+load_dotenv()
+BASE_URL = base_url_from_env()
+
+# The Jikan v4 limits are 3 requests per second AND 60 per minute. 0.5 s respects the first
+# limit but a long run would hit the second (120 per minute). 1.0 s keeps us under both.
+# Tenrai does not publish its own limits, so we keep these conservative ones.
 THROTTLE_SECONDS = 1.0
 MAX_RETRIES = 3
 TIMEOUT_SECONDS = 20
 # A server could ask us to wait for an hour. Cap it so one bad header cannot stall a run.
 MAX_RETRY_AFTER_SECONDS = 60
 
-# The four tag families MyAnimeList shares one ID space for. Key: Jikan's filter value.
+# The four tag families MyAnimeList shares one ID space for. Key: the API's filter value.
 # Value: the singular "kind" we store in the genres table.
 GENRE_FILTERS = {
     "genres": "genre",
@@ -62,7 +80,7 @@ def _retry_after_seconds(response: requests.Response, attempt: int) -> float:
 
 
 def get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Send one GET request to Jikan and return the parsed JSON.
+    """Send one GET request to the anime API and return the parsed JSON.
 
     Retries connection errors, timeouts, 429, and 5xx up to MAX_RETRIES attempts.
     Raises right away on other errors (like 404), and after the last failed attempt.
@@ -140,8 +158,8 @@ def get_genre_reference() -> list[dict[str, Any]]:
     because a reference file with a missing family would be silently wrong.
     """
     records: list[dict[str, Any]] = []
-    for jikan_filter, kind in GENRE_FILTERS.items():
-        data = get("genres/anime", params={"filter": jikan_filter})
+    for api_filter, kind in GENRE_FILTERS.items():
+        data = get("genres/anime", params={"filter": api_filter})
         for tag in data["data"]:
             records.append({"genre_id": tag["mal_id"], "name": tag["name"], "kind": kind})
     return records

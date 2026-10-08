@@ -1,0 +1,392 @@
+[
+  {
+    "genre_id": 15,
+    "name": "Kids",
+    "kind": "demographic"
+  },
+  {
+    "genre_id": 25,
+    "name": "Shoujo",
+    "kind": "demographic"
+  },
+  {
+    "genre_id": 27,
+    "name": "Shounen",
+    "kind": "demographic"
+  },
+  {
+    "genre_id": 42,
+    "name": "Seinen",
+    "kind": "demographic"
+  },
+  {
+    "genre_id": 43,
+    "name": "Josei",
+    "kind": "demographic"
+  },
+  {
+    "genre_id": 9,
+    "name": "Ecchi",
+    "kind": "explicit_genre"
+  },
+  {
+    "genre_id": 12,
+    "name": "Hentai",
+    "kind": "explicit_genre"
+  },
+  {
+    "genre_id": 49,
+    "name": "Erotica",
+    "kind": "explicit_genre"
+  },
+  {
+    "genre_id": 1,
+    "name": "Action",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 2,
+    "name": "Adventure",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 4,
+    "name": "Comedy",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 5,
+    "name": "Avant Garde",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 7,
+    "name": "Mystery",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 8,
+    "name": "Drama",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 10,
+    "name": "Fantasy",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 14,
+    "name": "Horror",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 22,
+    "name": "Romance",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 24,
+    "name": "Sci-Fi",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 26,
+    "name": "Girls Love",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 28,
+    "name": "Boys Love",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 30,
+    "name": "Sports",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 36,
+    "name": "Slice of Life",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 37,
+    "name": "Supernatural",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 41,
+    "name": "Suspense",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 46,
+    "name": "Award Winning",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 47,
+    "name": "Gourmet",
+    "kind": "genre"
+  },
+  {
+    "genre_id": 3,
+    "name": "Racing",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 6,
+    "name": "Mythology",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 11,
+    "name": "Strategy Game",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 13,
+    "name": "Historical",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 17,
+    "name": "Martial Arts",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 18,
+    "name": "Mecha",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 19,
+    "name": "Music",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 20,
+    "name": "Parody",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 21,
+    "name": "Samurai",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 23,
+    "name": "School",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 29,
+    "name": "Space",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 31,
+    "name": "Super Power",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 32,
+    "name": "Vampire",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 35,
+    "name": "Harem",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 38,
+    "name": "Military",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 39,
+    "name": "Detective",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 40,
+    "name": "Psychological",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 48,
+    "name": "Workplace",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 50,
+    "name": "Adult Cast",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 51,
+    "name": "Anthropomorphic",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 52,
+    "name": "CGDCT",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 53,
+    "name": "Childcare",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 54,
+    "name": "Combat Sports",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 55,
+    "name": "Delinquents",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 56,
+    "name": "Educational",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 57,
+    "name": "Gag Humor",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 58,
+    "name": "Gore",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 59,
+    "name": "High Stakes Game",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 60,
+    "name": "Idols (Female)",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 61,
+    "name": "Idols (Male)",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 62,
+    "name": "Isekai",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 63,
+    "name": "Iyashikei",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 64,
+    "name": "Love Polygon",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 65,
+    "name": "Magical Sex Shift",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 66,
+    "name": "Mahou Shoujo",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 67,
+    "name": "Medical",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 68,
+    "name": "Organized Crime",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 69,
+    "name": "Otaku Culture",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 70,
+    "name": "Performing Arts",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 71,
+    "name": "Pets",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 72,
+    "name": "Reincarnation",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 73,
+    "name": "Reverse Harem",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 74,
+    "name": "Love Status Quo",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 75,
+    "name": "Showbiz",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 76,
+    "name": "Survival",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 77,
+    "name": "Team Sports",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 78,
+    "name": "Time Travel",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 79,
+    "name": "Video Game",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 80,
+    "name": "Visual Arts",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 81,
+    "name": "Crossdressing",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 82,
+    "name": "Urban Fantasy",
+    "kind": "theme"
+  },
+  {
+    "genre_id": 83,
+    "name": "Villainess",
+    "kind": "theme"
+  }
+]

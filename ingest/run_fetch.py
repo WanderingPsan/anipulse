@@ -1,18 +1,32 @@
+"""Smoke command: fetch top anime from Jikan and save them to data/raw/top_anime.json.
+
+Run with `python -m ingest.run_fetch`. It proves the client works against the live API.
+"""
+
 import json
+import logging
+import sys
 from pathlib import Path
 
 from ingest.jikan import get_top_anime
 
 RAW_DIR = Path("data/raw")
+# Day 1 saw repeated 504 errors on page 2, so the smoke test asks for one page (25 anime).
+PAGES = 1
 
 
-def main():
+def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    result = get_top_anime(pages=PAGES)
+    if not result.items:
+        print(f"Jikan failed for every page requested ({result.failed_pages}). Nothing saved.")
+        return 1
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    anime = get_top_anime(pages=1)  # 4 pages x 25 = 100 titles
     out_path = RAW_DIR / "top_anime.json"
-    out_path.write_text(json.dumps(anime, indent=2))
-    print(f"Saved {len(anime)} anime to {out_path}")
+    out_path.write_text(json.dumps(result.items, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Saved {len(result.items)} anime to {out_path}. Failed pages: {result.failed_pages}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

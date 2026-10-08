@@ -1,0 +1,21 @@
+[project]
+name = "anipulse"
+version = "0.1.0"
+description = "Anime analytics: which pre-release factors are associated with a higher MyAnimeList score."
+requires-python = ">=3.13"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# E/F: real errors, I: import order, B: likely bugs, UP: modern Python syntax.
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets tests import project packages (like ingest) from the repo root.
+pythonpath = ["."]
+markers = [
+    "db: needs a running PostgreSQL database",
+]

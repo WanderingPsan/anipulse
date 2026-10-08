@@ -1,4 +1,5 @@
 import time
+
 import requests
 
 BASE_URL = "https://api.jikan.moe/v4"

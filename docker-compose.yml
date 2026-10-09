@@ -1,0 +1,23 @@
+# Local PostgreSQL for development. Start it with: docker compose up -d db
+# The credentials match DATABASE_URL in .env.example.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: anipulse
+      POSTGRES_PASSWORD: anipulse
+      POSTGRES_DB: anipulse
+    ports:
+      - "5432:5432"
+    volumes:
+      # A named volume keeps the data when the container is removed and recreated.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready answers "yes" only once Postgres accepts connections.
+      test: ["CMD-SHELL", "pg_isready -U anipulse -d anipulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

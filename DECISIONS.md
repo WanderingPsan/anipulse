@@ -237,3 +237,192 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   (`data_source = 'jikan'`, `--jikan-pages`) are left unchanged for now.
 - Interview one-liner: "When my API shut down, I swapped in a compatible one by changing a
   single environment variable, and my tests kept passing because they never hit the network."
+
+## D-018: Source names are neutral: "api", not "jikan"
+- Component: 2
+- Decision: The live API's rows are stored with `data_source = 'api'`. The run log columns are
+  `pipeline_runs.api_pages_requested` and `api_pages_failed`, and the command flag is
+  `--api-pages`. This finishes the rename that D-017 left open.
+- Why: The project already switched servers once (Jikan to Tenrai). A database value like
+  `'jikan'` would be wrong today, and changing stored values later means a data migration.
+  "api" stays true whichever Jikan-compatible server answers.
+- Alternatives considered: `'tenrai'` (wrong again after the next switch). Keeping `'jikan'`
+  (misleading, since Jikan is shut down).
+- Trade-off: "api" says less about where a row came from. The run log and `ANIME_API_BASE_URL`
+  carry that detail instead.
+- Interview one-liner: "I named the column after the role the source plays, not the vendor,
+  so swapping vendors never touches the data."
+
+## D-019: A missing year or season is filled from the air date
+- Component: 2
+- Decision: When `year` is missing, it becomes the year of `aired_from`. When `season` is
+  missing, it comes from the month of `aired_from`: January to March is winter, April to June
+  spring, July to September summer, October to December fall. When the source has a year or
+  season, it is kept as is.
+- Why: In the CSV, `year` and `season` are empty in 22,638 of 28,858 rows, mostly movies,
+  OVAs, and specials, which MyAnimeList does not put in a season. Year and season are
+  pre-release factors the analysis needs. After filling, 870 of the 27,054 loaded anime have
+  no year or season, because they have no air date either. For example, Spirited Away
+  (mal_id 199) has no season in the CSV but aired on 2001-07-20, so it becomes summer 2001.
+- Alternatives considered: Leaving them empty (the analysis would lose most movies and OVAs).
+  Overwriting the source's season with the month rule everywhere (it disagrees with
+  MyAnimeList for shows that start at a season's edge: Frieren started on September 29, 2023,
+  which the month rule calls summer, but MyAnimeList lists it as fall 2023).
+- Trade-off: A filled season is our estimate, not MyAnimeList's label. The two can differ by
+  one season near the edges, and the database does not mark which rows were filled.
+- Interview one-liner: "Most rows had no season, so I derived it from the air date with a
+  documented rule, and only where the source was empty."
+
+## D-020: Two lookup tables instead of seven
+- Component: 2
+- Decision: The seven list fields (genres, explicit_genres, themes, demographics, studios,
+  producers, licensors) share two lookup tables: `genres` and `companies`.
+- Why: MyAnimeList gives genres, explicit genres, themes, and demographics one ID space
+  (Adventure is 2, Shounen is 27, all under `/anime/genre/`). Studios, producers, and
+  licensors are one kind of entity too: Madhouse is company 11 whether it is credited as a
+  studio or a producer. Seven tables would store Madhouse twice and split one ID space in four.
+- Alternatives considered: One lookup and one join table per field (14 tables, duplicated
+  names, and a query for "all of Frieren's tags" would need four joins).
+- Trade-off: Each table needs an extra column (`kind` or `role`) to say which family a row is
+  in.
+- Interview one-liner: "I modeled the entities the source actually has, so one company is one
+  row no matter how many roles it plays."
+
+## D-021: `kind` lives on `genres`, but `role` lives on the join table
+- Component: 2
+- Decision: A tag's family (`kind`) is a column of `genres`. A company's job (`role`) is a
+  column of `anime_companies`, and it is part of that table's primary key.
+- Why: A tag's kind never changes: Shounen is always a demographic. A company's role depends
+  on the show: Aniplex produces one show and licenses another. A fact belongs on the table
+  whose key it depends on.
+- Alternatives considered: `role` on `companies` (would force one role per company, which is
+  false).
+- Trade-off: None worth noting. This is what the data's shape requires.
+- Interview one-liner: "Kind describes the tag, so it is on the tag. Role describes the tag's
+  relationship to one show, so it is on the link."
+
+## D-022: `companies` uses its own ID
+- Component: 2
+- Decision: `companies.company_id` is a number the database assigns. MyAnimeList's ID is kept
+  in a separate `mal_id` column that can be empty.
+- Why: The CSV has only company names (D-015). Looking up every company's ID from the API would
+  take thousands of rate-limited calls. When the live API mentions a company, its `mal_id` is
+  filled in, and a later CSV load never erases it.
+- Alternatives considered: Using the name as the key (names are long and can change). Waiting
+  for IDs from the API (thousands of calls at 1 per second).
+- Trade-off: Two companies are matched by exact name, so a company spelled two ways would get
+  two rows.
+- Interview one-liner: "The CSV had no company IDs, so I gave them surrogate keys and fill in
+  the official ID whenever the API provides it."
+
+## D-023: No Alembic; tables are created with `create_all`
+- Component: 2
+- Decision: `python -m db.init` creates the tables with SQLAlchemy's `create_all`.
+- Why: This is a one-developer project with a fresh schema, and the database can be rebuilt
+  from the committed dataset in under a minute (D-024). Migrations solve a problem we do not
+  have yet.
+- Alternatives considered: Alembic migrations from day one (more files and concepts for no
+  current benefit).
+- Trade-off: `create_all` never changes a table that already exists. If the schema changes,
+  the database must be dropped and rebuilt, or Alembic added then.
+- Interview one-liner: "I kept schema management as simple as the project allowed and know
+  Alembic is the next step once the schema has to change under live data."
+
+## D-024: No database snapshot is committed
+- Component: 2
+- Decision: The database is always rebuilt from the committed dataset zip plus a live API
+  refresh. No dump of the database is stored.
+- Why: The zip is already committed, and a full load takes about 15 seconds. A snapshot would
+  be a second copy of the same data that could drift from the code.
+- Alternatives considered: Committing a `pg_dump` after each refresh (large binary diffs, and
+  a second source of truth).
+- Trade-off: API updates from earlier weekly refreshes are not kept, only the latest run's.
+  An anime that the API refreshed last week but not this week goes back to its CSV values.
+- Interview one-liner: "The database is a build output: anyone can rebuild it from the
+  committed source data with one command."
+
+## D-025: Repeated rows in the CSV are dropped before loading
+- Component: 2
+- Decision: When the same `mal_id` appears more than once, one record is kept and the rest are
+  counted as dropped. The run summary prints the count.
+- Why: The CSV has 231 `mal_id`s that appear 2 to 4 times, and every copy is identical in every
+  column. A Postgres upsert cannot update the same row twice in one statement, so repeats
+  would crash the load. After the Rx filter, 224 repeated rows are dropped.
+- Alternatives considered: Letting the database reject them (crashes the batch). Removing
+  them inside `read_kaggle_csv` (hides the problem from the run summary).
+- Trade-off: If a future snapshot repeats a `mal_id` with different values, we keep the last
+  one without comparing them.
+- Interview one-liner: "I found 231 duplicated IDs in the source, confirmed the copies were
+  identical, and drop them in a counted step instead of silently."
+
+## D-026: Company names keep their legal suffix when a cell is split
+- Component: 2
+- Decision: When splitting a company cell on ", ", a piece that is only a legal suffix
+  ("Inc.", "Ltd.", "LLC") is joined back to the name before it.
+- Why: Some names contain a comma. "NIS America, Inc." is credited on 55 anime and "Horgos
+  Coloroom Pictures Co., Ltd." on 8. A plain split would create a fake company called "Inc."
+  credited on dozens of shows. After loading, no company is named just "Inc." or "Ltd.".
+- Alternatives considered: A list of every comma-containing company name (breaks on the next
+  new company). Ignoring it (creates fake companies).
+- Trade-off: A suffix we did not list would still split. The list covers every case in this
+  snapshot.
+- Interview one-liner: "The list cells used commas both as separators and inside names, so I
+  rejoin legal suffixes after splitting."
+
+## D-027: Durations are stored in whole minutes, and never as 0
+- Component: 2
+- Decision: `parse_duration` adds up hours, minutes, and seconds and rounds to whole minutes.
+  Anything shorter than half a minute becomes 1, not 0.
+- Why: 734 rows give their length in seconds ("33 sec per ep"). The schema stores whole
+  minutes, and 0 would read as "no length", which is wrong.
+- Alternatives considered: Storing seconds (changes Toast's schema). Treating seconds-long
+  titles as unknown (throws away real data).
+- Trade-off: A 33-second episode and a 1-minute episode look the same.
+- Interview one-liner: "I parsed every duration format in the data and rounded to the
+  schema's unit without letting short clips become zero."
+
+## D-028: Both sources match tags by name, and links are replaced per batch
+- Component: 2
+- Decision: CSV and API records both list tag names, which are matched to
+  `data/reference/mal_genres.json` (with the alias dict for renamed tags). Unmatched names are
+  logged and counted. Each batch of 1,000 anime runs in one transaction: upsert the anime,
+  upsert their companies, delete their old links, insert the current links.
+- Why: One matching path for both sources means one set of tests. Today every tag in the CSV
+  matches (0 unmatched). Deleting and reinserting links is simpler than working out which
+  links changed, and the transaction means nobody sees an anime with no tags halfway through.
+- Alternatives considered: Using the API's tag IDs directly (a second code path, and a new
+  tag missing from the reference file would break the foreign key instead of being counted).
+- Trade-off: A brand-new MyAnimeList tag is skipped (and reported) until the reference file is
+  rebuilt.
+- Interview one-liner: "Every load is an upsert plus a delete-and-reinsert of links in one
+  transaction, so running it twice changes nothing."
+
+## D-029: The live API is optional to a run; the CSV is not
+- Component: 2
+- Decision: `pipeline.run` exits with an error only when the base CSV load fails. If API pages
+  fail, the run is logged as `partial` with the failed page count, and the CSV data stays.
+  The refresh uses the top-anime endpoint, 25 anime per page, loaded after the CSV so the
+  newer API values win.
+- Why: The API has gone down before (Jikan's 504s, then its shutdown). A weekly refresh that
+  fails because of someone else's server should not leave us with no database.
+- Alternatives considered: Failing the whole run on any API error (the dashboard would lose
+  data for an outage we cannot fix).
+- Trade-off: A run can "succeed" with stale data. The `pipeline_runs` table records that so it
+  is visible.
+- Interview one-liner: "The snapshot is the backbone and the API is a refresh layer, so an API
+  outage downgrades a run to partial instead of failing it."
+
+## D-030: Database tests run in a throwaway schema, with CHECK constraints guarding values
+- Component: 2
+- Decision: Database tests create their tables in a separate schema, `anipulse_test`, and drop
+  it afterwards. The tables also have CHECK constraints: `season`, `kind`, `role`, and
+  `data_source` only accept their listed values.
+- Why: A developer's DATABASE_URL usually points at their real, loaded database. Tests that
+  drop or fill tables there would wipe it. The constraints mean a typo like "Fall" or
+  "studios" is rejected by the database instead of becoming a silent fourth category.
+- Alternatives considered: A separate test database (one more thing to create by hand).
+  Validating values only in Python (another program writing to the database could skip it).
+- Trade-off: The test schema needs permission to create schemas, which the project's own
+  database user has.
+- Interview one-liner: "My tests can't touch real data, and the database itself refuses values
+  outside the allowed categories."

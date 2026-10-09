@@ -1202,3 +1202,36 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   second.
 - Interview one-liner: "I let pytest discover tests from the repo root, so a test is never
   silently left out because its folder wasn't listed."
+
+## D-078: The README warns that the free hosts sleep, with each host's own numbers
+- Component: 11
+- Decision: Under the live links, the README says the API sleeps after 15 minutes without a
+  request and takes about a minute to wake, and the dashboard sleeps after 12 hours without a
+  visitor and shows a button to wake it. The numbers come from Render's and Streamlit's own
+  documentation.
+- Why: A visitor who clicks the API link after a quiet hour waits about a minute. Without a
+  warning, that looks like a broken project. With one, it looks like what it is: free hosting.
+- Alternatives considered: A scheduled job that pings the API every few minutes to keep it
+  awake (it adds a moving part, and it works against how a free tier is meant to be used:
+  services that nobody is visiting are supposed to sleep). A paid plan that never sleeps (costs
+  money every month for a portfolio project).
+- Trade-off: The first visit after a quiet spell is slow, and the README has to say so.
+- Interview one-liner: "Both services run on free tiers that sleep when idle, so I documented
+  the wake-up delay right next to the links instead of paying to hide it."
+
+## D-079: The dashboard runs on Python 3.13 and needs no secrets
+- Component: 11
+- Decision: The Streamlit Community Cloud app was created with Python 3.13 picked under
+  Advanced settings, and with no secrets.
+- Why: `.python-version` says 3.13, and CI, the Docker image, and the Render API all use it.
+  Streamlit's default is a newer Python that no test here has run on. Streamlit can't change
+  an app's Python version later without deleting and redeploying it, so it had to be right
+  the first time. No secrets are needed because the dashboard reads the committed files in
+  `data/processed/` and never calls the database or the API.
+- Alternatives considered: Streamlit's default Python (one service on an untested version).
+  Pointing the dashboard at the live API (a second thing that can be asleep or down, for no
+  gain, since both read the same files).
+- Trade-off: Moving the dashboard to a newer Python means deleting and recreating the app,
+  not editing a setting.
+- Interview one-liner: "Every part of the project runs on the same Python version, and the
+  dashboard reads committed data files, so it deploys with zero secrets."

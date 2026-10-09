@@ -7,8 +7,14 @@ titles into PostgreSQL, and an analysis asks which factors known before an anime
 associated with a higher MyAnimeList score. It also serves "if you liked X, try these"
 recommendations through a FastAPI service and a Streamlit dashboard.
 
-- **Live dashboard:** _link added at deploy_
-- **Live API:** _link added at deploy_
+- **Live dashboard:** [anipulse.streamlit.app](https://anipulse.streamlit.app/)
+- **Live API:** [anipulse-api.onrender.com/docs](https://anipulse-api.onrender.com/docs)
+  (interactive docs; health check at
+  [/health](https://anipulse-api.onrender.com/health))
+
+Both run on free hosting that sleeps when idle. The API sleeps after 15 minutes without a
+request, so the first request after that can take about a minute while it wakes up. The
+dashboard sleeps after 12 hours without a visitor and shows a button to wake it.
 
 ## Headline finding
 
@@ -134,9 +140,11 @@ ruff format --check .
   reruns the analysis and the recommender, and commits `data/processed/` and
   `analysis/FINDINGS.md` if they changed. A live API outage does not fail the run. A failed
   CSV load does.
-- **Hosting** (`render.yaml`): a free Render web service that installs `api/requirements.txt`,
-  starts uvicorn on Render's `$PORT`, and checks `/health` before switching traffic to a new
-  deploy.
+- **Hosting**: the API is a free Render web service (`render.yaml`) that installs
+  `api/requirements.txt`, starts uvicorn on Render's `$PORT`, and checks `/health` before
+  switching traffic to a new deploy. The dashboard runs on Streamlit Community Cloud from
+  `dashboard/app.py` with the root `requirements.txt` and Python 3.13. Both redeploy on every
+  commit to `main`, including the weekly data refresh.
 
 ## Data sources and licenses
 

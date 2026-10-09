@@ -41,3 +41,10 @@ def test_readme_numbers_are_dated_and_point_to_findings() -> None:
     """Hand-typed numbers go stale after a refresh, so the reader must know their date."""
     assert re.search(r"data as of \d{4}-\d{2}-\d{2}", README)
     assert "(analysis/FINDINGS.md)" in README
+
+
+def test_readme_has_live_links() -> None:
+    """The live links are the first thing a visitor clicks, so neither may be a placeholder."""
+    for label in ("Live dashboard", "Live API"):
+        line = next(line for line in README.splitlines() if f"**{label}:**" in line)
+        assert "(https://" in line, f"{label} has no web link: {line}"

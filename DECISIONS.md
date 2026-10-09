@@ -492,7 +492,7 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
 - Decision: The genre "Award Winning" is never one of the tested tags or a model feature.
 - Why: MyAnimeList adds it after a show wins an award, so it is an outcome, like score
   (D-007). Frieren has it. Using it would explain good scores with good reception.
-- Alternatives considered: Keeping every genre as the spec's "most common genres" wording
+- Alternatives considered: Keeping every genre as the build plan's "most common genres" wording
   suggests (leaks an outcome into the predictors).
 - Trade-off: None for the question asked; the tag is still in the catalog file.
 - Interview one-liner: "One genre tag is only given after release, so I treated it as an
@@ -1109,7 +1109,7 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   proves the image can import the app, find the data files, and listen on `$PORT`. For example,
   a typo in the start command (`api.mian:app`) builds fine, but the container stops with
   "Could not import module", so `/health` fails.
-- Alternatives considered: Build only (what the spec requires, but it misses startup errors).
+- Alternatives considered: Build only (what the build plan requires, but it misses startup errors).
   `docker/build-push-action` (adds caching, but adds another action to keep up to date).
 - Trade-off: About a minute of extra CI time per push, with no layer cache between runs.
 - Interview one-liner: "CI doesn't just build the image, it boots it and checks that it

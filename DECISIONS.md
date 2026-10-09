@@ -751,3 +751,76 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   sareta Shiromadoushi, Gensoumaden Saiyuuki, and Mai Mai Shinko to Sennen no Mahou.
 - Interview one-liner: "I let each franchise take one slot per list, so five suggestions
   means five different shows."
+
+## D-050: The API reads prebuilt files, not Postgres
+- Component: 5
+- Decision: At startup the API loads `catalog.parquet`, `recommendations.parquet`, and
+  `metadata.json` from `ANIPULSE_DATA_DIR` (default `data/processed`) into memory. It never
+  connects to the database.
+- Why: Free hosting has no database that stays awake, and these files are rebuilt weekly
+  anyway, so a live database would add cost and a failure point without fresher answers. The
+  files are small (about 2 MB on disk), and lookups take a few milliseconds: a recommendation
+  request for Frieren (52991) took about 3 ms on the full data.
+- Alternatives considered: Querying Postgres per request (needs a hosted database); SQLite
+  (still a second copy of the data to build and ship).
+- Trade-off: Data is only as fresh as the last rebuild, and new files need a restart to load.
+  A missing file stops startup with an error naming it, rather than serving empty answers.
+- Interview one-liner: "My API serves read-only data that changes weekly, so I load prebuilt
+  files into memory and skip the database entirely."
+
+## D-051: The recommender's similarity is exposed as match_score
+- Component: 5
+- Decision: `/recommend` returns the stored `similarity` column as `match_score`, rounded to 4
+  decimals, and `/docs` describes it as a 0 to 1 rank within this title's own list that should
+  not be compared across titles.
+- Why: Since D-048 the number is a percentile-rank blend relative to each title's candidates,
+  not a raw cosine. Calling it "similarity" invites reading 0.99 as "almost identical" and
+  comparing it between shows. Frieren's first pick and some other show's first pick can both
+  score about 0.99 while being very different matches.
+- Alternatives considered: Keeping the name `similarity` (misleading); hiding the number and
+  returning only rank (callers lose a way to see how close picks are inside one list).
+- Trade-off: The API field name differs from the column name in the file, so readers of both
+  need this note.
+- Interview one-liner: "The score is a rank inside one show's list, so I named it match_score
+  and documented that it isn't comparable across shows."
+
+## D-052: An unknown anime is a 404, a short list is a normal answer
+- Component: 5
+- Decision: `/anime/{mal_id}` and `/recommend/{mal_id}` return 404 only when the mal_id is not
+  in the catalog. A known title gets 200 with however many recommendations exist, up to k,
+  with a `count` field. `k` must be 1 to 10, and anything else is rejected with 422.
+- Why: 37 titles have fewer than 10 recommendations (D-049): 27 have none and 10 have 3 to 8.
+  Those titles exist; they just have few good matches. Returning an error would make the
+  dashboard treat a real show as missing. Ten is the most the file holds per title.
+- Alternatives considered: 404 when the list is empty (confuses "no such show" with "no
+  picks"); padding short lists with weaker matches (the build already decided they are not
+  good enough).
+- Trade-off: Callers must handle an empty list.
+- Interview one-liner: "404 means the show doesn't exist; an empty list means it exists but
+  has nothing good to recommend, and those are different answers."
+
+## D-053: Search is a plain-text substring match, ordered by members
+- Component: 5
+- Decision: `/anime/search` finds titles whose default or English title contains the query,
+  ignoring case, and treats the query as plain text (so "(" or "?" are not pattern syntax).
+  Results are ordered by members, most first, then by mal_id. `limit` is 1 to 50.
+- Why: People type part of a name ("frieren"), in either language. Ordering by members puts
+  the main series first: Sousou no Frieren (1,527,369 members), then the 2nd Season, then a
+  short special. A scan of 27,054 titles took about 20 ms, so no search index is needed.
+- Alternatives considered: Exact title match (too strict); fuzzy matching for typos (a new
+  dependency, not needed yet); ordering by score (puts small, highly rated specials first).
+- Trade-off: No typo tolerance: "freiren" finds nothing.
+- Interview one-liner: "Search is a case-insensitive substring match on both titles, with the
+  most-watched shows first, which is fast enough in memory at this size."
+
+## D-054: The API's own requirements file includes python-dotenv
+- Component: 5
+- Decision: `api/requirements.txt` holds fastapi, uvicorn[standard], pandas, and pyarrow, plus
+  python-dotenv, all at the same versions as the root `requirements.txt`.
+- Why: The project reads settings from environment variables or a `.env` file, and the API
+  reads `ANIPULSE_DATA_DIR` the same way. python-dotenv is tiny and already a project
+  dependency, so the API keeps the same configuration rule as the rest of the code.
+- Alternatives considered: Reading only real environment variables in the API (a second way
+  to configure things, just for one package).
+- Trade-off: One more package in the hosting install.
+- Interview one-liner: "The API host installs only five packages, not the analysis stack."

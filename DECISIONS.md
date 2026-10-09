@@ -600,6 +600,7 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   tags only, at low similarity values.
 - Interview one-liner: "I kept one scoring formula for every pair so all similarities sit on
   the same scale and can be ranked together."
+- Update: D-048 keeps this formula but blends percentile ranks instead of raw cosines.
 
 ## D-043: Placeholder synopses count as missing
 - Component: 4
@@ -643,6 +644,8 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
 - Trade-off: Scores are recomputed from scratch on every build, which takes about 90 seconds.
 - Interview one-liner: "I never build the full similarity matrix; I process a thousand rows at
   a time and keep only the top ten per row, which keeps memory around 100 MB instead of 6 GB."
+- Update: since D-048 only the 12,657 recommendable titles are scored as candidates, and since
+  D-049 the top 50 are kept before repeats of a franchise are dropped.
 
 ## D-046: The franchise heuristic skips neighbors that start with the same two meaningful words
 - Component: 4
@@ -686,3 +689,65 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   sanity check, not proof of quality.
 - Interview one-liner: "Without user data I checked genre overlap, coverage, runtime, and
   read the lists for five famous shows, and I report where the results are weak."
+- Update: the numbers above are from the first version. D-048 and D-049 changed the blend and
+  the lists; current numbers are in D-049.
+
+## D-048: Text and tag similarity are turned into percentile ranks before blending
+- Component: 4
+- Decision: For each query, the text cosine and the tag cosine of every allowed candidate
+  (recommendable, not itself, not its franchise) are each replaced by a percentile rank from
+  0 (worst) to 1 (best). Ties share the average rank. Then similarity = 0.7 x text rank +
+  0.3 x tag rank. Text stays 0 when either title has no synopsis. If every allowed score in a
+  row is equal, that part is 0 for the row. Pairs that share no word and no tag are still
+  never recommended. Only the 12,657 recommendable titles are scored as candidates.
+- Why: Raw tag cosines sit near 1 and raw text cosines near 0 (medians 0.894 and 0.046 in
+  D-047), so the 70/30 weights did not mean what they said and tags decided most lists.
+  Frieren's top 5 included a Dragon Ball Z special. Three versions were built on the same
+  database and compared:
+
+  | Metric | Raw blend | Min-max | Percentile rank |
+  |---|---|---|---|
+  | Tag overlap at 10 | 93.9% | 77.0% | 93.4% |
+  | Coverage of recommendable titles | 97.9% | 98.4% | 97.6% |
+  | Median text cosine of picks | 0.046 | 0.138 | 0.076 |
+  | Median tag cosine of picks | 0.894 | 0.676 | 0.775 |
+  | Build runtime (seconds) | 71.2 | 92.2 | 221.4 |
+
+  Min-max (lowest score becomes 0, highest becomes 1) made text decide almost alone, and
+  the lists drifted off-genre: Fullmetal Alchemist: Brotherhood got a shop-keeping comedy.
+  Percentile rank let text count more while keeping genre overlap. Frieren's top 5 went from
+  "Yuusha Party wo Tsuihou sareta Shiromadoushi, Dragon Ball Z Special 2, RG Veda, 100-man no
+  Inochi no Ue ni Ore wa Tatteiru, Gensoumaden Saiyuuki" to "Dragon Quest: Dai no Daibouken
+  (2020), 100-man no Inochi no Ue ni Ore wa Tatteiru, Dragon Quest: Dai no Daibouken, Yuusha
+  Party wo Tsuihou sareta Shiromadoushi, Gensoumaden Saiyuuki". Percentile rank was chosen.
+  Ranking only recommendable titles instead of all 27,054 gave the same file and cut the
+  build from 221.4 to 92.7 seconds.
+- Alternatives considered: Min-max rescaling (above); keeping raw cosines and changing the
+  weights (the scales would still differ from query to query).
+- Trade-off: The stored similarity is now relative to each query's candidates, not a raw
+  cosine. A 0.9 means "near the top of this show's candidates", so values from two different
+  queries are not comparable.
+- Interview one-liner: "My text and tag scores lived on different scales, so I turned each
+  into a percentile rank per query before blending, which made the 70/30 weights real."
+
+## D-049: A list holds at most one title per franchise key
+- Component: 4
+- Decision: After scoring, each title's top 50 candidates are taken, and any candidate whose
+  franchise key (D-046) equals the key of a better-ranked candidate in the same list is
+  dropped. The first 10 that remain are kept. Titles with no key words are never grouped.
+- Why: The D-046 rule only hides the query's own franchise. Other franchises could still
+  take two slots: Frieren's list had two Dragon Quest: Dai no Daibouken entries and Shingeki
+  no Kyojin's had two Koutetsujou no Kabaneri entries. Before this rule, 10,128 lists had a
+  repeated key (with percentile ranks already in place); after it, none do. Taking 50 candidates first lets lists still reach 10.
+- Alternatives considered: Taking only the top 10 and then filtering (lists would shrink).
+- Trade-off: Keys must match exactly, so "Saraba Uchuu Senkan Yamato" and "Uchuu Senkan
+  Yamato 2202" both stay in Cowboy Bebop's list. Ten more titles end with fewer than 10
+  recommendations (37 instead of 27), mostly Lupin and Detective Conan spin-offs whose 50
+  best candidates are nearly all one franchise. Current results with D-048 and D-049: tag
+  overlap at 10 is 93.2%, coverage of recommendable titles 96.3% (45.0% of all titles),
+  median text cosine 0.075 and tag cosine 0.772, 270,228 rows, build runtime 91.2 seconds,
+  and two builds in a row wrote identical files. Frieren's top 5 is now Dragon Quest: Dai no
+  Daibouken (2020), 100-man no Inochi no Ue ni Ore wa Tatteiru, Yuusha Party wo Tsuihou
+  sareta Shiromadoushi, Gensoumaden Saiyuuki, and Mai Mai Shinko to Sennen no Mahou.
+- Interview one-liner: "I let each franchise take one slot per list, so five suggestions
+  means five different shows."

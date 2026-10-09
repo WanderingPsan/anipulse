@@ -5,72 +5,72 @@
   "placeholder_synopses": 22,
   "text_features": 30000,
   "tag_features": 74,
-  "recommendation_rows": 270270,
-  "titles_with_fewer_than_k": 27,
-  "tag_overlap_at_10": 0.939,
-  "coverage_of_recommendable": 0.9787,
-  "coverage_of_all_titles": 0.4579,
+  "recommendation_rows": 270228,
+  "titles_with_fewer_than_k": 37,
+  "tag_overlap_at_10": 0.9324,
+  "coverage_of_recommendable": 0.9625,
+  "coverage_of_all_titles": 0.4503,
   "build_runtime_seconds": 91.2,
-  "median_text_cosine": 0.046,
-  "median_tag_cosine": 0.894,
+  "median_text_cosine": 0.075,
+  "median_tag_cosine": 0.772,
   "spot_checks": {
     "Sousou no Frieren": [
-      "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
-      "Dragon Ball Z Special 2: Zetsubou e no Hankou!! Nokosareta Chousenshi - Gohan to Trunks",
-      "RG Veda",
+      "Dragon Quest: Dai no Daibouken (2020)",
       "100-man no Inochi no Ue ni Ore wa Tatteiru",
-      "Gensoumaden Saiyuuki"
+      "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
+      "Gensoumaden Saiyuuki",
+      "Mai Mai Shinko to Sennen no Mahou"
     ],
     "Fullmetal Alchemist: Brotherhood": [
-      "Arslan Senki (TV): Fuujin Ranbu",
-      "Arslan Senki (TV)",
-      "Katsute Kami Datta Kemono-tachi e",
-      "One Piece Movie 06: Omatsuri Danshaku to Himitsu no Shima",
-      "100-man no Inochi no Ue ni Ore wa Tatteiru 2nd Season"
+      "Ta ga Tame no Alchemist",
+      "100-man no Inochi no Ue ni Ore wa Tatteiru 2nd Season",
+      "Kino no Tabi: The Beautiful World - Nanika wo Suru Tame ni - Life Goes On.",
+      "Edens Zero 2nd Season",
+      "Dragon Quest: Yuusha Abel Densetsu"
     ],
     "Steins;Gate": [
-      "Human Lost: Ningen Shikkaku",
-      "Mizu no Kotoba",
-      "Gilgamesh",
+      "Arata naru Sekai: World's/Start/Load/End",
+      "Narutaru: Mukuro Naru Hoshi Tama Taru Ko",
       "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
-      "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden 2nd Season - Kakusei Zenya Recap"
+      "RahXephon: Tagen Hensoukyoku",
+      "Mahou Shoujo Madoka★Magica Movie 3: Hangyaku no Monogatari"
     ],
     "Shingeki no Kyojin": [
-      "Highschool of the Dead",
-      "Shingeki no Kyotou",
       "Koutetsujou no Kabaneri Movie 1: Tsudou Hikari",
-      "Katsute Kami Datta Kemono-tachi e",
-      "Pumpkin Scissors"
+      "Terra Formars: Revenge",
+      "Owari no Seraph",
+      "Devil Survivor 2 The Animation",
+      "Dolls' Frontline"
     ],
     "Cowboy Bebop": [
       "Phantasy Star Online 2: Episode Oracle",
       "Saraba Uchuu Senkan Yamato: Ai no Senshi-tachi",
-      "Cyborg 009: Chou Ginga Densetsu",
-      "The Marginal Service",
-      "Uchuu Senkan Yamato 2202: Ai no Senshi-tachi"
+      "Hi-Speed Jecy",
+      "Uchuu Senkan Yamato 2202: Ai no Senshi-tachi",
+      "Irregular Hunter X: The Day of Sigma"
     ]
   },
   "spot_checks_without_franchise_rule": {
     "Sousou no Frieren": [
       "Sousou no Frieren 2nd Season",
-      "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
-      "Sousou no Frieren: ●● no Mahou",
-      "Dragon Ball Z Special 2: Zetsubou e no Hankou!! Nokosareta Chousenshi - Gohan to Trunks",
-      "RG Veda"
+      "Dragon Quest: Dai no Daibouken (2020)",
+      "100-man no Inochi no Ue ni Ore wa Tatteiru",
+      "Dragon Quest: Dai no Daibouken",
+      "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru"
     ],
     "Fullmetal Alchemist: Brotherhood": [
       "Fullmetal Alchemist",
       "Fullmetal Alchemist: The Sacred Star of Milos",
       "Fullmetal Alchemist: The Conqueror of Shamballa",
       "Fullmetal Alchemist: Brotherhood Specials",
-      "Arslan Senki (TV): Fuujin Ranbu"
+      "Ta ga Tame no Alchemist"
     ],
     "Steins;Gate": [
       "Steins;Gate 0",
       "Steins;Gate: Kyoukaimenjou no Missing Link - Divide By Zero",
       "Steins;Gate Movie: Fuka Ryouiki no Déjà vu",
-      "Steins;Gate: Oukoubakko no Poriomania",
-      "Steins;Gate: Soumei Eichi no Cognitive Computing"
+      "Arata naru Sekai: World's/Start/Load/End",
+      "Narutaru: Mukuro Naru Hoshi Tama Taru Ko"
     ],
     "Shingeki no Kyojin": [
       "Shingeki no Kyojin Season 2",
@@ -82,9 +82,9 @@
     "Cowboy Bebop": [
       "Cowboy Bebop: Tengoku no Tobira",
       "Phantasy Star Online 2: Episode Oracle",
-      "Cowboy Bebop: Yose Atsume Blues",
       "Saraba Uchuu Senkan Yamato: Ai no Senshi-tachi",
-      "Cyborg 009: Chou Ginga Densetsu"
+      "Cowboy Bebop: Yose Atsume Blues",
+      "Hi-Speed Jecy"
     ]
   }
 }

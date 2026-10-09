@@ -15,7 +15,13 @@ from recommender.features import (
     text_matrix,
 )
 from recommender.franchise import franchise_key, same_franchise
-from recommender.similarity import TAG_WEIGHT, best_k, top_k
+from recommender.similarity import (
+    TAG_WEIGHT,
+    best_k,
+    one_per_franchise,
+    rank_rescale,
+    top_k,
+)
 
 ELF = "An elf mage travels with her friends after the demon king is defeated, remembering"
 TITAN = "Giant titans attack the walled city and soldiers fight back to save humanity"
@@ -193,3 +199,42 @@ def test_median_parts_uses_both_matrices():
         "median_text_cosine": 1.0,
         "median_tag_cosine": 1.0,
     }
+
+
+def test_rank_rescale_gives_percentiles_among_allowed_candidates():
+    # The 99 is masked, so it neither counts nor gets a score. The two 0.5s tie.
+    scores = np.array([[0.1, 0.5, 0.5, 0.9, 99.0]])
+    allowed = np.array([[True, True, True, True, False]])
+    assert rank_rescale(scores, allowed).tolist() == [[0.0, 0.5, 0.5, 1.0, 0.0]]
+
+
+def test_rank_rescale_turns_an_all_equal_row_into_zeros():
+    scores = np.array([[0.3, 0.3, 0.3]])
+    allowed = np.ones((1, 3), dtype=bool)
+    assert rank_rescale(scores, allowed).tolist() == [[0.0, 0.0, 0.0]]
+
+
+def test_one_per_franchise_keeps_the_better_title_and_fills_from_below():
+    row = np.array([0, 0, 0, 0])
+    col = np.array([0, 1, 2, 3])
+    keys = np.array([7, 7, 8, 9])  # columns 0 and 1 are one franchise
+    _, kept = one_per_franchise(row, col, keys, k=2)
+    assert kept.tolist() == [0, 2]
+
+
+def test_a_list_holds_one_title_per_franchise():
+    anime, tags = tiny_catalog()
+    tags = recommender_tags(tags)
+    ids = anime["mal_id"].to_numpy()
+    text = text_matrix(clean_synopses(anime["synopsis"].tolist()))
+    tag_vectors = tag_matrix(tag_lists(ids.tolist(), tags))
+    eligible = np.ones(len(ids), dtype=bool)
+    titles = anime["title"].tolist()
+    titan_wars = [5]
+    plain = top_k(
+        ids, text, tag_vectors, eligible, titles, k=2, query_rows=titan_wars, skip_franchise=False
+    )
+    assert set(plain["similar_id"]) == {3, 4}  # both Shingeki no Kyojin titles
+    deduped = top_k(ids, text, tag_vectors, eligible, titles, k=2, query_rows=titan_wars)
+    assert len(deduped) == 2
+    assert len(set(deduped["similar_id"]) & {3, 4}) == 1

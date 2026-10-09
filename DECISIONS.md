@@ -426,3 +426,146 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   database user has.
 - Interview one-liner: "My tests can't touch real data, and the database itself refuses values
   outside the allowed categories."
+
+## D-031: The data funnel starts at the raw CSV and recounts the pipeline's cleaning steps
+- Component: 3
+- Decision: `analysis.run` reads the committed CSV and runs the pipeline's own Rx filter and
+  de-duplication (`is_excluded`, `dedupe_by_mal_id`) to count those steps again. It then
+  compares mal_ids with the database to count the titles the live API added, and the SQL
+  filters finish the funnel. The steps must add up to the database's row count, or the run
+  stops with an error.
+- Why: The database only holds the rows that survived cleaning, so it cannot say how many were
+  removed. Recounting with the same functions gives the same answer the pipeline got: 28,858
+  raw rows, 1,581 Rx titles, 224 duplicate rows, and 1 title added by the API in the run used
+  to write FINDINGS.md. Every row is accounted for.
+- Alternatives considered: Parsing the counts out of `pipeline_runs.message` (free text, and
+  it only describes the last run). New columns on `pipeline_runs` (a schema change, and still
+  per-run).
+- Trade-off: The analysis reads the CSV as well as the database, which adds a few seconds.
+- Interview one-liner: "My funnel accounts for every row from the raw file to the analysis
+  population, and it refuses to run if the steps don't add up."
+
+## D-032: The analysis population is defined once, as a temporary view
+- Component: 3
+- Decision: `analysis/sql/population.sql` creates a temporary view called `population`
+  (score not null, at least 1,000 members, not "Not yet aired"). Every question's SQL file
+  reads from that view.
+- Why: Four questions share one population. If each file repeated the filter, changing the
+  members cutoff would mean editing four files and hoping none was missed.
+- Alternatives considered: Copying the WHERE clause into each file. A permanent view (a schema
+  change, and the database would then depend on the analysis).
+- Trade-off: A temporary view only exists on the connection that made it, so all queries run
+  on one connection.
+- Interview one-liner: "The population rules live in exactly one place, so every question is
+  answered about the same set of titles."
+
+## D-033: Results lead with effect sizes on one shared scale
+- Component: 3
+- Decision: Every test reports an effect size between 0 and 1: rho squared for Spearman and
+  epsilon squared (H divided by n minus 1) for Kruskal-Wallis. Both mean "the share of the
+  variation in score ranks this factor explains". Tables are sorted by effect size and
+  labelled negligible (below 0.01), small (to 0.06), medium (to 0.14), or large.
+- Why: With about 12,650 titles, almost any difference is statistically significant. In the
+  run behind FINDINGS.md, 33 of 60 tests were significant and 15 of those had a negligible
+  effect. A p-value says "probably not zero"; an effect size says "how big".
+- Alternatives considered: Ranking by p-value (most are below 0.001, so they cannot be ranked).
+  Reporting rho and H as they are (they are on different scales and cannot be compared).
+- Trade-off: The cutoffs for the labels are conventions, not laws.
+- Interview one-liner: "With twelve thousand titles everything is significant, so I ranked
+  factors by how much they explain, not by their p-values."
+
+## D-034: All p-values are adjusted together with Benjamini-Hochberg
+- Component: 3
+- Decision: Every Spearman and Kruskal-Wallis test in the analysis (questions 1 to 3) goes into
+  one Benjamini-Hochberg correction (`statsmodels` `multipletests`, method `fdr_bh`). Tables
+  show the raw and adjusted p-value side by side.
+- Why: Run 60 tests at p < 0.05 and about 3 come out "significant" by luck. Benjamini-Hochberg
+  keeps the expected share of false discoveries among the hits at 5%.
+- Alternatives considered: Bonferroni (divides the cutoff by 60, so it misses real effects).
+  No correction (overstates the evidence).
+- Trade-off: Adjusted p-values are larger, so a few borderline results stop being significant.
+- Interview one-liner: "I ran 60 tests, so I corrected for multiple comparisons with
+  Benjamini-Hochberg and show both p-values."
+
+## D-035: The "Award Winning" tag is left out of the analysis
+- Component: 3
+- Decision: The genre "Award Winning" is never one of the tested tags or a model feature.
+- Why: MyAnimeList adds it after a show wins an award, so it is an outcome, like score
+  (D-007). Frieren has it. Using it would explain good scores with good reception.
+- Alternatives considered: Keeping every genre as the spec's "most common genres" wording
+  suggests (leaks an outcome into the predictors).
+- Trade-off: None for the question asked; the tag is still in the catalog file.
+- Interview one-liner: "One genre tag is only given after release, so I treated it as an
+  outcome and kept it out of the model."
+
+## D-036: How titles with several, or no, studios and demographics are grouped
+- Component: 3
+- Decision: Studios are ranked by title count in the population with a window function. A
+  title with several studios is grouped under its highest-ranked one. The top 15 keep their
+  names, the rest are "Other", and titles with no studio are "Unknown". A title's demographic
+  is its one demographic tag, "None" if it has none, or "Multiple" if it has more than one.
+  Any other missing category (source, rating, season) is "Unknown".
+- Why: Category tests need each title in exactly one group. Most titles have one studio, so
+  picking the best-known keeps the most information. "Unknown" is kept as its own group because
+  missing data is not random: titles with no studio listed score lower.
+- Alternatives considered: Counting a multi-studio title once per studio (counts it twice in
+  the same test). Dropping titles with missing values (loses them from every test).
+- Trade-off: A co-production is credited to only one of its studios.
+- Interview one-liner: "Every title lands in exactly one group per factor, and 'unknown' is a
+  group, not a dropped row."
+
+## D-037: The regression model and how it is judged
+- Component: 3
+- Decision: One OLS model (statsmodels, HC3 robust standard errors) of score on every
+  pre-release factor plus the tag indicators. Each category's most common value is the
+  reference. Episodes and duration enter as log(1 + x). Rows missing episodes, duration, or
+  year are left out (86 in the run behind FINDINGS.md). The model is judged by 5-fold
+  cross-validated R squared next to a predict-the-mean baseline.
+- Why: The log stops a few 1,000-episode shows from steering the line. HC3 standard errors
+  stay honest when some groups' scores are more spread out than others'. Cross-validation
+  measures R squared on titles the model did not learn from, which in-sample R squared
+  overstates.
+- Alternatives considered: A tree model (predicts better but its coefficients cannot be read
+  as "compared with the reference"). Filling in missing values (invents data for under 1% of
+  rows).
+- Trade-off: A straight-line model misses interactions, like a studio being strong only in one
+  genre.
+- Interview one-liner: "I fit one interpretable model and reported its cross-validated R
+  squared against a baseline, so I don't overstate how predictable scores are."
+
+## D-038: The common tags are the top 15 genres and top 10 themes
+- Component: 3
+- Decision: The tested tags are the 15 most frequent genres and the 10 most frequent themes in
+  the population, each as a yes/no factor. Ties in frequency are broken by name.
+- Why: Rare tags give tiny groups whose medians jump around. There are fewer common themes
+  than genres, so fewer themes are taken.
+- Alternatives considered: Every tag (78 tests, many with a handful of titles). A frequency
+  cutoff like 5% (the list would change size between data refreshes).
+- Trade-off: Rare but distinctive tags are not tested.
+- Interview one-liner: "I tested the 25 most common tags as yes/no factors so every group was
+  large enough to trust."
+
+## D-039: FINDINGS.md is filled from a template, and reruns give identical files
+- Component: 3
+- Decision: The text lives in `analysis/FINDINGS_TEMPLATE.md` with `$placeholders`, filled by
+  Python's `string.Template.substitute`. The bootstrap uses a fixed random seed (42).
+- Why: `substitute` raises an error if any placeholder has no value, so the report can never
+  ship with a gap or a hand-typed number. The fixed seed means running the analysis twice on
+  the same database writes byte-identical files (only the `generated_at` time changes), so a
+  change in the output always means a change in the data or the code.
+- Alternatives considered: Jinja2 (a new dependency for something the standard library does).
+  Writing the numbers by hand (goes stale after the next refresh).
+- Trade-off: Sentences whose wording depends on the result (like "the biggest is medium") need
+  small helper functions.
+- Interview one-liner: "Every number in my write-up is generated, and the analysis is
+  reproducible to the byte."
+
+## D-040: The top 250 keeps ties at the cutoff
+- Component: 3
+- Decision: The top 250 for question 3 uses `RANK()`, so titles tied with the 250th score are
+  all kept. In the run behind FINDINGS.md this gave 253 titles.
+- Why: Cutting a tie in half would pick between equal titles by an arbitrary rule.
+- Alternatives considered: `ROW_NUMBER()` (exactly 250, but the cut through a tie depends on
+  sort order).
+- Trade-off: "Top 250" can hold slightly more than 250 titles; FINDINGS.md prints the real count.
+- Interview one-liner: "I used RANK instead of ROW_NUMBER so tied scores are treated the same."

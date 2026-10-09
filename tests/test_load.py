@@ -1,19 +1,17 @@
 """Database tests: loading is repeatable, links are replaced, and the live API wins.
 
-They need PostgreSQL, so they are marked `db` and skipped when DATABASE_URL is not set. They
-work in a throwaway schema called anipulse_test, so they never touch the real tables.
+They need PostgreSQL, so they are marked `db`. The `engine` fixture (tests/conftest.py) skips
+them when DATABASE_URL is not set and gives each test a throwaway schema.
 """
 
 import json
-import os
-from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from sqlalchemy import Engine, create_engine, select, text
+from sqlalchemy import Engine, select
 
 from db.load import count_rows, load_records
-from db.models import Anime, AnimeCompany, AnimeGenre, Base, Company, PipelineRun
+from db.models import Anime, AnimeCompany, AnimeGenre, Company, PipelineRun
 from ingest.kaggle import read_kaggle_csv
 from pipeline.run import RunSummary, prepare, read_reference, run
 from transform.records import flatten_jikan_anime, kaggle_row_to_record
@@ -22,26 +20,6 @@ pytestmark = pytest.mark.db
 
 FIXTURES = Path(__file__).parent / "fixtures"
 KAGGLE_CSV = FIXTURES / "kaggle_sample.csv"
-TEST_SCHEMA = "anipulse_test"
-
-
-@pytest.fixture
-def engine() -> Iterator[Engine]:
-    """An engine whose tables live in a fresh, empty test schema."""
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        pytest.skip("DATABASE_URL is not set")
-    admin = create_engine(url)
-    with admin.begin() as conn:
-        conn.execute(text(f"DROP SCHEMA IF EXISTS {TEST_SCHEMA} CASCADE"))
-        conn.execute(text(f"CREATE SCHEMA {TEST_SCHEMA}"))
-    # Every table name without a schema is quietly sent to the test schema instead.
-    test_engine = admin.execution_options(schema_translate_map={None: TEST_SCHEMA})
-    Base.metadata.create_all(test_engine)
-    yield test_engine
-    with admin.begin() as conn:
-        conn.execute(text(f"DROP SCHEMA {TEST_SCHEMA} CASCADE"))
-    admin.dispose()
 
 
 @pytest.fixture(scope="module")

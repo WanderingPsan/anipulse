@@ -1,0 +1,90 @@
+{
+  "titles": 27054,
+  "recommendable_titles": 12657,
+  "titles_without_synopsis": 4870,
+  "placeholder_synopses": 22,
+  "text_features": 30000,
+  "tag_features": 74,
+  "recommendation_rows": 270270,
+  "titles_with_fewer_than_k": 27,
+  "tag_overlap_at_10": 0.939,
+  "coverage_of_recommendable": 0.9787,
+  "coverage_of_all_titles": 0.4579,
+  "build_runtime_seconds": 91.2,
+  "median_text_cosine": 0.046,
+  "median_tag_cosine": 0.894,
+  "spot_checks": {
+    "Sousou no Frieren": [
+      "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
+      "Dragon Ball Z Special 2: Zetsubou e no Hankou!! Nokosareta Chousenshi - Gohan to Trunks",
+      "RG Veda",
+      "100-man no Inochi no Ue ni Ore wa Tatteiru",
+      "Gensoumaden Saiyuuki"
+    ],
+    "Fullmetal Alchemist: Brotherhood": [
+      "Arslan Senki (TV): Fuujin Ranbu",
+      "Arslan Senki (TV)",
+      "Katsute Kami Datta Kemono-tachi e",
+      "One Piece Movie 06: Omatsuri Danshaku to Himitsu no Shima",
+      "100-man no Inochi no Ue ni Ore wa Tatteiru 2nd Season"
+    ],
+    "Steins;Gate": [
+      "Human Lost: Ningen Shikkaku",
+      "Mizu no Kotoba",
+      "Gilgamesh",
+      "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+      "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden 2nd Season - Kakusei Zenya Recap"
+    ],
+    "Shingeki no Kyojin": [
+      "Highschool of the Dead",
+      "Shingeki no Kyotou",
+      "Koutetsujou no Kabaneri Movie 1: Tsudou Hikari",
+      "Katsute Kami Datta Kemono-tachi e",
+      "Pumpkin Scissors"
+    ],
+    "Cowboy Bebop": [
+      "Phantasy Star Online 2: Episode Oracle",
+      "Saraba Uchuu Senkan Yamato: Ai no Senshi-tachi",
+      "Cyborg 009: Chou Ginga Densetsu",
+      "The Marginal Service",
+      "Uchuu Senkan Yamato 2202: Ai no Senshi-tachi"
+    ]
+  },
+  "spot_checks_without_franchise_rule": {
+    "Sousou no Frieren": [
+      "Sousou no Frieren 2nd Season",
+      "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
+      "Sousou no Frieren: ●● no Mahou",
+      "Dragon Ball Z Special 2: Zetsubou e no Hankou!! Nokosareta Chousenshi - Gohan to Trunks",
+      "RG Veda"
+    ],
+    "Fullmetal Alchemist: Brotherhood": [
+      "Fullmetal Alchemist",
+      "Fullmetal Alchemist: The Sacred Star of Milos",
+      "Fullmetal Alchemist: The Conqueror of Shamballa",
+      "Fullmetal Alchemist: Brotherhood Specials",
+      "Arslan Senki (TV): Fuujin Ranbu"
+    ],
+    "Steins;Gate": [
+      "Steins;Gate 0",
+      "Steins;Gate: Kyoukaimenjou no Missing Link - Divide By Zero",
+      "Steins;Gate Movie: Fuka Ryouiki no Déjà vu",
+      "Steins;Gate: Oukoubakko no Poriomania",
+      "Steins;Gate: Soumei Eichi no Cognitive Computing"
+    ],
+    "Shingeki no Kyojin": [
+      "Shingeki no Kyojin Season 2",
+      "Shingeki no Kyojin: The Final Season Part 2",
+      "Shingeki no Kyojin Season 3",
+      "Shingeki no Kyojin Season 3 Part 2",
+      "Shingeki no Kyojin: The Final Season - Kanketsu-hen"
+    ],
+    "Cowboy Bebop": [
+      "Cowboy Bebop: Tengoku no Tobira",
+      "Phantasy Star Online 2: Episode Oracle",
+      "Cowboy Bebop: Yose Atsume Blues",
+      "Saraba Uchuu Senkan Yamato: Ai no Senshi-tachi",
+      "Cyborg 009: Chou Ginga Densetsu"
+    ]
+  }
+}

@@ -569,3 +569,120 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   sort order).
 - Trade-off: "Top 250" can hold slightly more than 250 titles; FINDINGS.md prints the real count.
 - Interview one-liner: "I used RANK instead of ROW_NUMBER so tied scores are treated the same."
+
+## D-041: Recommendations use synopsis words and tags, without explicit genres or "Award Winning"
+- Component: 4
+- Decision: Each title becomes two vectors: TF-IDF of its synopsis (English stop words,
+  one- and two-word phrases, words in at least 2 synopses, at most 30,000 features) and a
+  multi-hot list of its genres, themes, and demographics. Explicit genres and the
+  "Award Winning" genre are left out.
+- Why: The synopsis says what a show is about; tags say what kind of show it is. "Award
+  Winning" describes how a show was received, not what it is (same reason as D-035), so two
+  shows sharing it are not alike. Frieren and Cowboy Bebop both have it.
+- Alternatives considered: Word embeddings from a language model (a new dependency and much
+  slower to build); including every tag (rewards fame instead of content).
+- Trade-off: TF-IDF matches words, not meaning: "demon king" in two synopses counts as a link
+  even if the shows feel nothing alike.
+- Interview one-liner: "Content-based means I compare what shows are about, using synopsis
+  words and genre tags, and I left out a tag that only reflects reception."
+
+## D-042: One blend formula for every pair, with text similarity 0 when a synopsis is missing
+- Component: 4
+- Decision: Similarity = 0.7 x text cosine + 0.3 x tag cosine for every pair of titles. When
+  either title has no synopsis, its text cosine is 0, so the pair can score at most 0.3.
+- Why: Tag cosines run much higher than text cosines. Two shows with the same genres score
+  1.0 on tags, but two synopses share only a few words. Among the final recommendations the
+  median tag cosine is 0.894 and the median text cosine is 0.046. Ranking some candidates on
+  tags alone would push titles without a synopsis above better matches.
+- Alternatives considered: Switching to tags only when a synopsis is missing (puts two
+  numbers on different scales into one ranking).
+- Trade-off: A title with no synopsis is rarely recommended, and its own list is driven by
+  tags only, at low similarity values.
+- Interview one-liner: "I kept one scoring formula for every pair so all similarities sit on
+  the same scale and can be ranked together."
+
+## D-043: Placeholder synopses count as missing
+- Component: 4
+- Decision: A synopsis that starts with "No synopsis has been added" or "No synopsis
+  information has been added" is treated as empty. The build counts them (22 in the current
+  database).
+- Why: Every placeholder uses the same sentence, so TF-IDF would call all those titles near
+  copies of each other and recommend them to one another.
+- Alternatives considered: Leaving them in (fake matches); deleting them in the pipeline
+  (the text is still what MyAnimeList shows, so the database keeps it as is).
+- Trade-off: A new placeholder wording would slip through until it is added to the pattern.
+- Interview one-liner: "I found a stock 'no synopsis' sentence in the data and treated it as
+  missing, or every placeholder title would have matched every other one."
+
+## D-044: Any title can be looked up, but only scored titles with 1,000+ members are recommended
+- Component: 4
+- Decision: Every anime gets a recommendation list, but a title can appear in someone's list
+  only if it has a score and at least 1,000 members. That is 12,657 of 27,054 titles.
+- Why: Suggestions should be shows people have actually watched. A two-minute promotional
+  clip with 300 members can have a synopsis close to Frieren's, but nobody would thank us for
+  recommending it. Looking up any title still works, so a niche show gets suggestions too.
+- Alternatives considered: No filter (obscure titles crowd the lists); filtering the queries
+  too (searching for a niche title would return nothing).
+- Trade-off: Catalog coverage is measured against the 12,657 recommendable titles; over all
+  titles it can never pass 47%.
+- Interview one-liner: "Anyone can look up any show, but I only recommend shows with a score
+  and at least a thousand members, so suggestions are things people have actually watched."
+
+## D-045: Similarity is computed 1,000 rows at a time, and ties break the same way every run
+- Component: 4
+- Decision: The build scores 1,000 query titles against all titles with sparse matrix
+  products, finds each row's top 10 with `argpartition`, and discards the rest before the
+  next chunk. Ties are broken toward the lower mal_id. A pair with similarity 0 is never
+  recommended, so a title that shares nothing with anyone gets fewer than 10 rows (27 do).
+- Why: The full table would be 27,054 x 27,054 numbers, about 6 GB as 64-bit floats. One chunk
+  is about 100 MB. `argpartition` finds the 10 best without sorting all 27,054 scores.
+  `argpartition` alone picks an arbitrary title among ties at the cutoff, so every candidate at
+  or above the 10th score is sorted by score and then mal_id.
+- Alternatives considered: A nearest-neighbor library (a new dependency for a build that
+  takes under two minutes); padding short lists with zero-similarity titles (random noise).
+- Trade-off: Scores are recomputed from scratch on every build, which takes about 90 seconds.
+- Interview one-liner: "I never build the full similarity matrix; I process a thousand rows at
+  a time and keep only the top ten per row, which keeps memory around 100 MB instead of 6 GB."
+
+## D-046: The franchise heuristic skips neighbors that start with the same two meaningful words
+- Component: 4
+- Decision: A title's key is the first two words of its title after lowercasing, removing
+  punctuation, and dropping filler words (no, wa, ga, wo, ni, de, to, the, a, an, of). A
+  neighbor whose title starts with the query's key is skipped. A title with a one-word key
+  skips neighbors that start with that word. This is a heuristic, not a franchise database.
+- Why: Without it, Shingeki no Kyojin's top 5 are all its own seasons and Steins;Gate's top 5
+  are all Steins;Gate spin-offs, which a fan already knows about. Filler words matter because
+  "Boku no Hero Academia" and "Boku no Kokoro no Yabai Yatsu" both start with "boku no" but
+  are unrelated; after dropping "no" their keys are "boku hero" and "boku kokoro".
+- Alternatives considered: MyAnimeList's relations data (thousands of extra API calls);
+  comparing whole titles (misses "Season 2").
+- Trade-off: Sequels with a different title still get through, because the rule only reads
+  titles. Two unrelated shows that share their first two key words are wrongly skipped.
+- Interview one-liner: "I skip recommendations whose titles start like the query's, after
+  dropping particles like 'no', so Season 2 doesn't crowd out new shows."
+
+## D-047: How the recommendations are evaluated
+- Component: 4
+- Decision: Four checks, written by the build to `data/processed/recommender_eval.json`:
+  tag overlap at 10, catalog coverage, build runtime, and spot checks of five well-known titles.
+- Why: There are no "correct" recommendations to test against. These proxies catch the common
+  failures: suggestions that share no genre with the query, and lists that keep repeating the
+  same few shows. Results from the current build:
+  - Tag overlap at 10: 93.9% of recommendations share at least one genre with their query
+    (counted over queries that have a genre).
+  - Catalog coverage: 97.9% of the 12,657 recommendable titles appear in at least one list
+    (45.8% of all 27,054 titles, see D-044).
+  - Build runtime: 91.2 seconds for 270,270 recommendation rows. Two builds in a row wrote
+    identical files.
+  - Which half decides: among recommended pairs the median tag cosine is 0.894 and the
+    median text cosine is 0.046. The blend gives text 70% of the weight, but most pairs share
+    few synopsis words, so tags decide most lists and text breaks the ties between them.
+  - Spot checks: Shingeki no Kyojin now recommends Highschool of the Dead and Koutetsujou no
+    Kabaneri instead of its own seasons; Steins;Gate's spin-offs give way to Human Lost and
+    Re:Zero. Frieren's list is weaker (a Dragon Ball Z special appears), because her tags are
+    common and few synopsis words are shared.
+- Alternatives considered: Holding out user ratings (we have no per-user data).
+- Trade-off: High tag overlap is easy to reach because tags are part of the score, so it is a
+  sanity check, not proof of quality.
+- Interview one-liner: "Without user data I checked genre overlap, coverage, runtime, and
+  read the lists for five famous shows, and I report where the results are weak."

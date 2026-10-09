@@ -1114,3 +1114,76 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
 - Trade-off: About a minute of extra CI time per push, with no layer cache between runs.
 - Interview one-liner: "CI doesn't just build the image, it boots it and checks that it
   answers."
+
+## D-073: README screenshots are taken with a headless browser at a fixed window size
+- Component: 9
+- Decision: The two README screenshots in `docs/img/` (the "What predicts a high score?" page
+  and the recommender page for Frieren) are taken by a headless Chromium at a 1280 by 900
+  window, scale 1, after opening the home page and clicking through the dashboard's own menu.
+  The Streamlit developer toolbar is hidden with `--client.toolbarMode viewer`. The small
+  script that drives the browser is not committed.
+- Why: A fixed window makes every retake look the same and keeps each image near 100 KB, so
+  the README loads fast and the images line up. Going through the menu matters: opening
+  `/predictors` directly showed Streamlit's raw file names (`app`, `predictors`) in the sidebar
+  instead of the app's menu and data notice.
+- Alternatives considered: Screenshots taken by hand (sizes and zoom differ every time).
+  Committing the script (it needs Node and Playwright, which the project does not otherwise
+  use, for two images that change rarely).
+- Trade-off: The images do not update with the weekly refresh, so after a refresh they can
+  show slightly older numbers than FINDINGS.md.
+- Interview one-liner: "The screenshots come from a headless browser at a fixed size, so they
+  are consistent and cheap to retake."
+
+## D-074: README numbers carry the date of their data and point to FINDINGS.md
+- Component: 9
+- Decision: The README's headline numbers are labeled with the date of the data they came
+  from ("data as of 2026-10-09", from `data_last_updated` in `metadata.json`), followed by a
+  link to `analysis/FINDINGS.md` for the latest numbers.
+- Why: The weekly refresh regenerates FINDINGS.md from the database but never touches
+  README.md. Without a date, a reader could not tell that "43%" might be a few weeks old, and
+  could not tell which file to trust if the two disagree.
+- Alternatives considered: Have the refresh rewrite the README too (a generated README is hard
+  to edit by hand and adds more commits). No numbers in the README (the headline is the
+  reason to read it).
+- Trade-off: The README can be a few weeks behind FINDINGS.md, and someone must update the
+  date when they update the numbers.
+- Interview one-liner: "The README states a dated snapshot and points to the generated report
+  for the latest numbers, so it is never silently wrong."
+
+## D-075: A test checks the README's links and its dated data label
+- Component: 9
+- Decision: `tests/test_docs.py` checks that every relative link and image in README.md points
+  to a file that exists, and that the README has a "data as of YYYY-MM-DD" label and a link to
+  `analysis/FINDINGS.md`. It does not check that the date matches `metadata.json`.
+- Why: GitHub shows a broken link or a missing image without any error. Renaming
+  `docs/img/predictors.png` would break the front page silently; the test makes it fail in CI.
+  The date is not compared with `metadata.json` because the weekly refresh changes that file
+  on purpose, and a red build every Monday would teach everyone to ignore the test.
+- Alternatives considered: A Markdown link-checker tool (a new dependency, and most check web
+  links too, which makes CI depend on other websites). No test (a broken image is easy to miss).
+- Trade-off: It does not check web links or Mermaid syntax. GitHub renders the diagram, so
+  that is checked by looking at the page.
+- Interview one-liner: "The README is part of the product, so a test fails if it links to a
+  file that does not exist."
+
+## D-076: The recommender table fits a laptop screen
+- Component: 9
+- Decision: The recommender table shows 5 columns instead of 8: Rank, Title, Match rank (0-1),
+  Shared genres and tags, and Score. Type and year move inside the title, the same way the
+  title picker already shows them ("Sousou no Frieren (TV, 2023)"). A title that already
+  contains its year, like "Dragon Quest: Dai no Daibouken (2020)", gets only the type. The
+  English title column is dropped. Each column has a fixed width, and the widths add up to
+  800 pixels, which is the table's width in a 1280-wide window.
+- Why: At 1280 wide, only the first 4 of the 8 columns showed. The rest needed sideways
+  scrolling, which most people never notice, so the Score column was effectively hidden. The
+  English title was the longest column and often empty, because many titles have no English
+  name. The search box still accepts English names, so dropping the column loses no way to
+  find a show.
+- Alternatives considered: A wider README screenshot (GitHub shrinks README images to about
+  900 pixels, so the text would be unreadable, and laptop users would still scroll). Letting
+  Streamlit size the columns (the table came out 967 pixels wide at 1280, so it still
+  scrolled).
+- Trade-off: A very long title is cut off at its column's edge, and the English name is no
+  longer shown on this page. The API's `/anime/{mal_id}` still returns it.
+- Interview one-liner: "I cut the table to the five columns people actually compare and fixed
+  their widths, so it fits a laptop screen without sideways scrolling."

@@ -115,3 +115,18 @@ def filter_catalog(
 def shared_tags(query_tags: list[str], other_tags: list[str]) -> list[str]:
     """Tags two titles have in common, in alphabetical order."""
     return sorted(set(query_tags) & set(other_tags))
+
+
+def title_label(title: str, type_: str | None, year: float | None) -> str:
+    """A title with its type and year: "Sousou no Frieren (TV, 2023)".
+
+    Type and year live inside the title so the recommender table needs two fewer columns
+    and fits a laptop screen. Some titles already carry their year, like
+    "Dragon Quest: Dai no Daibouken (2020)", so the year is not repeated for them.
+    """
+    year_text = None if year is None or pd.isna(year) else str(int(year))
+    if year_text and f"({year_text})" in title:
+        year_text = None
+    type_text = None if type_ is None or pd.isna(type_) or not type_ else str(type_)
+    details = ", ".join(part for part in (type_text, year_text) if part)
+    return f"{title} ({details})" if details else title

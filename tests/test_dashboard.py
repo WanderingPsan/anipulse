@@ -21,6 +21,7 @@ from dashboard.logic import (
     range_restriction,
     score_histogram,
     shared_tags,
+    title_label,
     top_coefficients,
 )
 from dashboard.style import ACCENT, MUTED, highlight_colors
@@ -79,6 +80,18 @@ def test_shared_tags_are_the_sorted_overlap() -> None:
         "Drama",
     ]
     assert shared_tags(["Fantasy"], []) == []
+
+
+def test_title_label_adds_type_and_year() -> None:
+    assert title_label("Sousou no Frieren", "TV", 2023) == "Sousou no Frieren (TV, 2023)"
+    assert title_label("Sousou no Frieren", None, 2023) == "Sousou no Frieren (2023)"
+    assert title_label("Sousou no Frieren", "TV", float("nan")) == "Sousou no Frieren (TV)"
+    assert title_label("Sousou no Frieren", None, None) == "Sousou no Frieren"
+
+
+def test_title_label_does_not_repeat_a_year_already_in_the_title() -> None:
+    title = "Dragon Quest: Dai no Daibouken (2020)"
+    assert title_label(title, "TV", 2020) == "Dragon Quest: Dai no Daibouken (2020) (TV)"
 
 
 def test_top_coefficients_skip_number_terms_and_sort_by_effect() -> None:
@@ -189,6 +202,10 @@ def test_recommender_page_shows_picks_for_frieren(data_folder: Path) -> None:
     app = run_page("pages/recommender.py")
     assert not app.info  # Frieren has picks, so no "no recommendations" message.
     assert app.subheader[0].value == "3 picks for Sousou no Frieren"
+    # Five columns fit a laptop screen; type and year are inside the title (D-076).
+    table = app.dataframe[0].value
+    assert list(table.columns) == ["rank", "title", "match_score", "shared", "score"]
+    assert table["title"].str.endswith(")").all()
 
 
 def test_recommender_page_explains_a_title_with_no_picks(data_folder: Path) -> None:

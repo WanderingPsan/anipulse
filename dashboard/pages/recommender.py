@@ -5,7 +5,7 @@ import streamlit as st
 
 from api.data import recommend, search
 from dashboard import data
-from dashboard.logic import SOURCE_CAPTION, shared_tags
+from dashboard.logic import SOURCE_CAPTION, shared_tags, title_label
 
 store = data.store()
 catalog = store.catalog
@@ -19,13 +19,11 @@ if not matches:
     st.stop()
 
 
-def label(match: dict) -> str:
-    """How a search result reads in the picker: "Sousou no Frieren (TV, 2023)"."""
-    details = ", ".join(str(part) for part in (match["type"], match["year"]) if part)
-    return f"{match['title']} ({details})" if details else match["title"]
-
-
-picked = st.selectbox("Pick the exact title", matches, format_func=label)
+picked = st.selectbox(
+    "Pick the exact title",
+    matches,
+    format_func=lambda m: title_label(m["title"], m["type"], m["year"]),
+)
 mal_id = picked["mal_id"]
 query_genres = list(catalog.loc[mal_id, "genres"])
 recs = recommend(store, mal_id, k=10)
@@ -40,22 +38,23 @@ if not recs:
     st.stop()
 
 table = pd.DataFrame(recs)
+# Type and year go inside the title, and the English title is left out, so the table fits a
+# 1280-wide window with no sideways scrolling (D-076). The fixed widths below add up to 800
+# pixels, the table's width at 1280; a longer title is cut off at its column's edge.
+table["title"] = [title_label(r["title"], r["type"], r["year"]) for r in recs]
 table["shared"] = [
     ", ".join(shared_tags(query_genres, list(catalog.loc[rec["mal_id"], "genres"]))) for rec in recs
 ]
 st.subheader(f"{len(recs)} picks for {picked['title']}")
 st.dataframe(
-    table[["rank", "title", "match_score", "shared", "score", "type", "year", "title_english"]],
+    table[["rank", "title", "match_score", "shared", "score"]],
     hide_index=True,
     column_config={
-        "rank": "Rank",
-        "title": "Title",
-        "title_english": "English title",
-        "type": "Type",
-        "year": st.column_config.NumberColumn("Year", format="%d"),
-        "score": st.column_config.NumberColumn("Score", format="%.2f"),
+        "rank": st.column_config.NumberColumn("Rank", width=50),
+        "title": st.column_config.TextColumn("Title", width=300),
+        "score": st.column_config.NumberColumn("Score", format="%.2f", width=60),
         "match_score": st.column_config.ProgressColumn(
-            "Match rank in this list (0-1)",
+            "Match rank (0-1)",
             help=(
                 "Where this pick ranks among all candidates for this one title, from 0 "
                 "(worst) to 1 (best). It is not a percentage match and cannot be compared "
@@ -64,8 +63,9 @@ st.dataframe(
             min_value=0.0,
             max_value=1.0,
             format="%.3f",
+            width=150,
         ),
-        "shared": "Shared genres and tags",
+        "shared": st.column_config.TextColumn("Shared genres and tags", width=240),
     },
 )
 st.caption(

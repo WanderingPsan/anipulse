@@ -205,4 +205,6 @@ p-values, and why the API reads prebuilt files instead of the database.
 
 ## How I built this
 
-<!-- Toast: write this section in your own words. -->
+I started thinking about this project in April and began the design in June. I wanted a topic I actually cared about, and I had started watching anime the year before, so I went with that. I designed the database schema (for example, mal_id as the key instead of the title, join tables for genres and studios, and lookup tables so each name is stored once) and decided which fields count as known before an anime airs. Score, members, and rank are outcomes, so they are never used as predictors, and using rank to explain score would be circular.
+
+I wrote some early prototype code myself, then decided this was a good chance to explore AI-assisted coding to build it out faster, while still making sure I understood each step and the actual tedium of code that was being produced by myself and it. Each component went through its own pull request with tests, and I reviewed every plan and every change before merging it. Every decision and its trade-off is written down in DECISIONS.md.

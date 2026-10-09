@@ -824,3 +824,122 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   to configure things, just for one package).
 - Trade-off: One more package in the hosting install.
 - Interview one-liner: "The API host installs only five packages, not the analysis stack."
+
+## D-055: The dashboard reads the prebuilt files and reuses the API's lookup code
+- Component: 6
+- Decision: The Streamlit dashboard loads `data/processed/` directly with `st.cache_data`. It
+  does not call the API or Postgres. It reuses `api/data.py` for loading, search, and
+  recommendations, so both front ends give the same answer to the same question.
+- Why: A free API host sleeps when idle, and a 30 to 60 second wake-up would stall a demo. The
+  files are small and already built for the API (D-050). Sharing `search` and `recommend`
+  means a fix to one is a fix to both.
+- Alternatives considered: Calling the API over HTTP (cold starts, and two things to keep
+  running); querying Postgres (needs a hosted database).
+- Trade-off: The dashboard depends on `api/data.py`, so a change there affects both. It imports
+  only that module (loaders, lookups, and the data notice), never the FastAPI app in
+  `api/main.py`, so the dashboard runs without FastAPI. Data is only as fresh as the last
+  rebuild.
+- Interview one-liner: "The dashboard and the API read the same files through the same
+  functions, so they can't disagree and neither waits on the other."
+
+## D-056: Episodes and episode length are charted as buckets, saved by the analysis
+- Component: 6
+- Decision: The analysis now also writes `analysis/numeric_bins.parquet`: median score with a
+  bootstrap 95% interval and n for episode buckets (1, 2-6, 7-13, 14-26, 27-52, 53+) and
+  episode-length buckets in minutes (1-4, 5-14, 15-29, 30-59, 60+). The dashboard shows each
+  chart with its Spearman rho from the existing tests.
+- Why: A rho is one number. It says "more episodes, slightly higher score" (rho 0.19) but hides
+  the shape. The buckets show it: 14-26 episodes has the highest median (7.03) and 2-6 the
+  lowest (6.45), and for length, 60+ minutes is highest (7.11) while 30-59 minutes (6.37) is
+  below 15-29 (6.92). The edges follow how anime is made: 12-13 episodes is one cour, 24-26 is
+  two. The buckets are computed after every other result, so the earlier bootstrap intervals
+  did not change: rerunning the analysis rewrote every other table byte for byte.
+- Alternatives considered: Shipping every title's episodes and length to the dashboard (more
+  data to ship for one chart); showing only the rho (no shape).
+- Trade-off: Bucket edges are a choice, and different edges would give slightly different
+  pictures.
+- Interview one-liner: "Correlation gave me one number, so I added bucketed medians with
+  intervals to show where the relationship actually bends."
+
+## D-057: The headline sentence is saved by the analysis, not rebuilt by the dashboard
+- Component: 6
+- Decision: `python -m analysis.run` writes `analysis/summary.json` with the headline sentence
+  from FINDINGS.md, the cross-validated R squared, the model's n, the population n, and the
+  top-250 n. The Overview and "What predicts a high score?" pages show the sentence word for
+  word.
+- Why: The model fit lived only in memory, so the dashboard had no way to state it. Writing
+  the sentence once means FINDINGS.md and the dashboard can never drift apart. The top-250
+  count is saved too because ties at the cutoff make it 253, not 250 (D-040).
+- Alternatives considered: Rebuilding the sentence in the dashboard (two copies of the same
+  logic); adding the fit to `metadata.json` (that file describes the data, not the results).
+- Trade-off: One more file in `data/processed/analysis/`.
+- Interview one-liner: "The headline is written once by the analysis and displayed everywhere,
+  so every page says exactly what the report says."
+
+## D-058: One chart style: medians as dots, and the title's subject in the accent color
+- Component: 6
+- Decision: Every chart goes through `dashboard/style.py`. The mark the title talks about is
+  accent blue (#2a78d6) and the rest are muted gray (#c3c2b7). A chart comparing two series
+  uses gray for the context series and blue for the one the title is about; orange (#eb6834)
+  is held for a second colored series. `.streamlit/config.toml` uses the same blue. Median
+  scores are drawn as dots with 95% interval whiskers, not bars. Every chart title states the
+  takeaway and n, and the caption names the data source.
+- Why: Readers look where the color is, so the color should point at the claim. Blue and orange
+  were run through a palette checker: they stay far apart for the common kinds of color
+  blindness (a color difference of 24.7, where 8 is the target), and gray carries no hue.
+  Dots, because medians sit between about 6 and 7.5: a bar starting at 0 makes 6.4 and 6.9
+  look the same, and a bar that doesn't start at 0 exaggerates the gap.
+- Alternatives considered: Plotly's default colors (a new color per bar, with nothing
+  standing out); bar charts of medians (see above).
+- Trade-off: Muted bars are harder to compare with each other than fully colored ones; hover
+  tooltips give the exact numbers.
+- Interview one-liner: "Each chart's title makes one claim, and the only colored mark is the
+  one the claim is about."
+
+## D-059: The recommender page labels match_score as a rank and explains empty lists
+- Component: 6
+- Decision: match_score is shown as "Match rank in this list (0-1)", with three decimals, a
+  bar, a help tooltip, and a caption saying it is not a percentage match and should not be
+  compared across titles (D-051). A title with no recommendations gets a friendly message
+  that says why, instead of an empty table.
+- Why: Across all lists the median match_score is 0.991, and 56% of picks score 0.99 or more,
+  so a label like "99% match" would mislead. Three decimals keep picks apart that two
+  decimals would round to the same value (Frieren's first pick is 0.995). All 27 titles with
+  no picks have no usable synopsis, and 26 of them have no genres or tags, so there is
+  nothing to compare them with (D-052).
+- Alternatives considered: Showing only the rank (loses how close the picks are); hiding
+  titles with no picks from search (a real show would look missing).
+- Trade-off: The page needs a caption to explain one number.
+- Interview one-liner: "The score is a rank inside one show's list, so the dashboard labels it
+  that way and says why a few shows have no picks."
+
+## D-060: Every page has an AppTest smoke test on tiny files
+- Component: 6
+- Decision: `tests/test_dashboard.py` runs the app with Streamlit's AppTest, switches to each
+  page, and fails on any exception. The analysis tables in those tests are built by the real
+  `analyze()` on the synthetic test data, and the catalog and recommendations are the API
+  tests' 6-title files. The pure helpers in `dashboard/logic.py` have their own unit tests.
+- Why: A page that crashes is the worst demo bug, and AppTest runs pages without a browser:
+  the five page tests take about 4.5 seconds together. Building the tables with the real
+  analysis code means a change to a table's columns breaks these tests, not the live
+  dashboard.
+- Alternatives considered: Browser tests with Playwright (slower, needs a running server);
+  testing only the helpers (misses errors in page layout code).
+- Trade-off: Smoke tests prove a page runs, not that a chart is right; the helpers' unit tests
+  and a look at the real app cover that.
+- Interview one-liner: "Every page is run in the test suite against small fixture files, so a
+  broken page fails a test before anyone sees it."
+
+## D-061: Explore filters treat "everything" as no filter
+- Component: 6
+- Decision: On the Explore page, an empty type list, no genre, no studio, and the full year
+  range all mean "don't filter". Titles with no year are shown only while the year slider
+  covers every year. Minimum members starts at 1,000, the same cutoff the analysis uses.
+- Why: Leaving the slider alone should not quietly hide titles without a year, but narrowing
+  it to 2020-2023 should not show undated ones either. Starting at 1,000 members hides
+  thousands of near-unknown titles that would crowd the top of any sort by score.
+- Alternatives considered: A separate "include unknown year" checkbox (one more control for a
+  rare case).
+- Trade-off: Someone looking for an obscure title must lower the members filter first.
+- Interview one-liner: "Filters only filter when you touch them, and the default view matches
+  the analysis population's member cutoff."

@@ -24,6 +24,15 @@ CATALOG_FILE = "catalog.parquet"
 RECOMMENDATIONS_FILE = "recommendations.parquet"
 METADATA_FILE = "metadata.json"
 
+# The data license (ODbL) asks for this notice wherever the data is shown. It lives here, in a
+# module with no web code, so the API and the dashboard share one copy and the dashboard
+# never has to load the FastAPI app just to read a sentence.
+ATTRIBUTION = (
+    "Contains data from Anime Database (July 2025) by sazzadsiddiquelikhon on Kaggle, "
+    "available under the ODbL v1.0. Original data from MyAnimeList via the Jikan API. "
+    "Refreshed data from MyAnimeList via the Tenrai API."
+)
+
 # Columns shown for an anime in a search result or a recommendation (no tag lists).
 SUMMARY_COLUMNS = ["mal_id", "title", "title_english", "type", "year", "score", "members"]
 

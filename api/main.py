@@ -1,6 +1,6 @@
 """The AniPulse API.
 
-    uvicorn api.main:app --reload
+    python -m uvicorn api.main:app --reload
 
 Then open http://127.0.0.1:8000/docs. The data files are read once at startup, so every
 request is a fast in-memory lookup.
@@ -12,14 +12,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.data import Store, data_dir, find_anime, load_store, recommend, search
-from api.schemas import Anime, Health, RecommendResponse, SearchResponse
-
-ATTRIBUTION = (
-    "Contains data from Anime Database (July 2025) by sazzadsiddiquelikhon on Kaggle, "
-    "available under the ODbL v1.0. Original data from MyAnimeList via the Jikan API. "
-    "Refreshed data from MyAnimeList via the Tenrai API."
+from api.data import (
+    ATTRIBUTION,
+    Store,
+    data_dir,
+    find_anime,
+    load_store,
+    recommend,
+    search,
 )
+from api.schemas import Anime, Health, RecommendResponse, SearchResponse
 
 DESCRIPTION = f"""
 Look up anime and get "if you liked X, try these" recommendations.

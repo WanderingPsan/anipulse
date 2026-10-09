@@ -35,6 +35,16 @@ TOP_GENRES = 15
 POST_RELEASE_TAGS = frozenset({"Award Winning"})
 TOP_THEMES = 10
 SIGNIFICANCE = 0.05
+# Buckets for charting episodes and episode length. Edges are chosen to match how shows are
+# made: 1 episode is a movie or special, 12-13 is one cour (season), 24-26 is two cours.
+# Each bucket includes its upper edge, so 13 episodes lands in "7-13".
+NUMERIC_BINS = {
+    "episodes": ([0, 1, 6, 13, 26, 52, np.inf], ["1", "2-6", "7-13", "14-26", "27-52", "53+"]),
+    "duration_min": (
+        [0, 4, 14, 29, 59, np.inf],
+        ["1-4", "5-14", "15-29", "30-59", "60+"],
+    ),
+}
 
 FACTOR_NAMES = {
     "episodes": "Episodes",
@@ -64,6 +74,7 @@ class Results:
     top250_n: int
     by_year: pd.DataFrame
     decades: pd.DataFrame
+    numeric_bins: pd.DataFrame
 
 
 def fill_unknown(factors: pd.DataFrame) -> pd.DataFrame:
@@ -211,6 +222,27 @@ def decade_summary(by_year: pd.DataFrame, factors: pd.DataFrame) -> pd.DataFrame
     return summary.astype({"decade": int})
 
 
+def numeric_bins(factors: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
+    """Median score per bucket of episodes and of episode length, for charts.
+
+    The Spearman test gives one number for "more episodes, higher score". Buckets show the
+    shape behind it: for example, whether 1-episode titles are the ones pulling scores down.
+    Titles missing the value are left out of that factor's buckets.
+    """
+    frames = []
+    for col, (edges, labels) in NUMERIC_BINS.items():
+        known = factors.dropna(subset=[col])
+        buckets = pd.cut(known[col], bins=edges, labels=labels)
+        groups = group_medians(known.assign(bucket=buckets), "bucket", rng)
+        # group_medians sorts by median; put the buckets back in their natural order.
+        groups["order"] = groups["group"].map(labels.index)
+        frames.append(groups.sort_values("order").assign(factor=col))
+    table = pd.concat(frames, ignore_index=True)
+    return table[["factor", "group", "order", "n", "median", "ci_low", "ci_high"]].astype(
+        {"group": str, "order": int}
+    )
+
+
 def finish_tests(rows: list[dict]) -> pd.DataFrame:
     """Put every test in one table, adjust all p-values together, and label effect sizes."""
     tests = pd.DataFrame(rows)
@@ -244,4 +276,6 @@ def analyze(frames: dict[str, pd.DataFrame]) -> Results:
         top250_n=len(frames["q3_top250"]),
         by_year=frames["q4_by_year"],
         decades=decade_summary(frames["q4_by_year"], factors),
+        # Computed last so the random draws above, and so every earlier interval, stay the same.
+        numeric_bins=numeric_bins(factors, rng),
     )

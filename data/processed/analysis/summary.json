@@ -1,0 +1,8 @@
+{
+  "headline": "Using only facts known before an anime airs, a linear model explains about 43% of the variation in MyAnimeList score on titles it has not seen (5-fold cross-validated R squared 0.43, versus 0.00 for always predicting the mean). No single factor has a large effect on its own: the biggest is medium. The strongest are studio (effect size 0.107, medium), source material (0.104, medium), and content rating (0.075, medium). These are associations in observational data, not causes.",
+  "model_r2": 0.4319405201720394,
+  "baseline_r2": -1.260623361232227e-05,
+  "model_n": 12571,
+  "population_n": 12657,
+  "top250_n": 253
+}

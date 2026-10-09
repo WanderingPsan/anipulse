@@ -14,7 +14,7 @@ from pathlib import Path
 import pandas as pd
 from sqlalchemy import Connection, Engine, text
 
-from analysis.findings import render_findings
+from analysis.findings import headline, render_findings
 from analysis.funnel import Funnel, build_funnel, count_csv_steps
 from analysis.questions import Results, analyze
 from db.load import count_rows
@@ -81,6 +81,26 @@ def funnel_table(funnel: Funnel) -> pd.DataFrame:
     return pd.DataFrame([vars(step) for step in funnel.steps]).astype({"change": "Int64"})
 
 
+def write_summary(results: Results) -> Path:
+    """Save the headline sentence and key counts, so the dashboard shows FINDINGS.md's words.
+
+    The model fit lives only in memory otherwise, and rebuilding the sentence elsewhere could
+    let the dashboard and FINDINGS.md drift apart.
+    """
+    fit = results.model_fit
+    summary = {
+        "headline": headline(results),
+        "model_r2": fit["model_r2"],
+        "baseline_r2": fit["baseline_r2"],
+        "model_n": fit["n"],
+        "population_n": results.population_n,
+        "top250_n": results.top250_n,
+    }
+    path = ANALYSIS_DIR / "summary.json"
+    path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def write_outputs(
     results: Results, funnel: Funnel, catalog: pd.DataFrame, metadata: dict
 ) -> list[Path]:
@@ -96,6 +116,7 @@ def write_outputs(
         "top250_tags": results.top250,
         "by_year": results.by_year,
         "by_decade": results.decades,
+        "numeric_bins": results.numeric_bins,
     }
     written = []
     for name, table in tables.items():
@@ -103,6 +124,7 @@ def write_outputs(
         table.to_parquet(path, index=False)
         written.append(path)
 
+    written.append(write_summary(results))
     catalog_path = PROCESSED_DIR / "catalog.parquet"
     # A column with any missing value comes back as floats (year 2023.0). Int64 keeps 2023.
     catalog.astype({"year": "Int64", "members": "Int64"}).to_parquet(catalog_path, index=False)

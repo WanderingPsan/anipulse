@@ -57,3 +57,18 @@ def test_findings_have_no_gaps_and_end_with_the_notice(results: Results) -> None
     assert "effect size is what matters" in text
     assert "| Rows in the raw CSV |  | 320 |" in text
     assert text.rstrip().endswith("Refreshed data from\nMyAnimeList via the Tenrai API.")
+
+
+def test_numeric_bins_cover_every_known_value_in_order(
+    results: Results, synthetic_frames: dict[str, pd.DataFrame]
+) -> None:
+    bins = results.numeric_bins
+    factors = synthetic_frames["q1_factors"]
+    for factor in ["episodes", "duration_min"]:
+        rows = bins[bins.factor == factor]
+        # Every title with a known value lands in exactly one bucket.
+        assert rows.n.sum() == factors[factor].notna().sum()
+        assert rows.order.is_monotonic_increasing
+        assert (rows.ci_low <= rows["median"]).all() and (rows["median"] <= rows.ci_high).all()
+    # 13 episodes is one cour, so it belongs with 7-13, not 14-26.
+    assert bins[bins.factor == "episodes"].group.tolist()[:3] == ["1", "2-6", "7-13"]

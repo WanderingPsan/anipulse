@@ -1,0 +1,22 @@
+# Render Blueprint for the API: https://render.com/docs/blueprint-spec
+#
+# - Render runs the API with its own Python runtime instead of the Dockerfile. It needs no
+#   image build, so deploys are faster, and the commands match the ones in the README.
+# - The Python version comes from .python-version. PYTHON_VERSION is not set here, because it
+#   would override that file and it needs a full version like 3.13.5. The file's "3.13" gets
+#   the newest 3.13 release.
+# - repo and branch are left out, so Render deploys the default branch of the repo that this
+#   Blueprint is created from.
+services:
+  - type: web
+    name: anipulse-api
+    runtime: python
+    plan: free
+    # Can't be changed after the service is created.
+    region: oregon
+    buildCommand: pip install -r api/requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    # Render sends traffic to a new deploy only once this path answers with a 2xx.
+    healthCheckPath: /health
+    # Deploy every commit to the branch, including the weekly data refresh.
+    autoDeployTrigger: commit

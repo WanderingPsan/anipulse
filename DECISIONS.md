@@ -1032,3 +1032,85 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   without a commit here.
 - Interview one-liner: "Current major versions, and Python comes from the same file the
   developers use."
+
+## D-068: One Dockerfile with two targets, and the pipeline image runs the mounted repo
+- Component: 8
+- Decision: The Dockerfile has a shared `base` stage and two targets. `api` (the default)
+  copies only `api/` and `data/processed/` and runs as a non-root user. `pipeline` installs
+  the full `requirements.txt` but copies no code. `docker-compose.yml` mounts the repo into it
+  and runs the same four commands as the weekly refresh, with `--api-pages 4`.
+- Why: The API needs 5 packages and 2.3 MB of data. The pipeline needs scipy, statsmodels,
+  scikit-learn, and the 9 MB dataset. One image for both would ship all of that to the host.
+  Mounting the repo means a local pipeline run writes its outputs where the refresh writes
+  them, so `git diff` shows exactly what changed, for example Frieren's (mal_id 52991) new
+  member count in `catalog.parquet`.
+- Alternatives considered: Two Dockerfiles (two files to keep in step on the Python version).
+  Copying the code into the pipeline image (outputs would stay inside the container unless
+  each output folder were mounted).
+- Trade-off: The pipeline image is only useful next to a checkout of the repo. Its outputs
+  overwrite committed files, so a local run must be undone with
+  `git restore data/processed analysis/FINDINGS.md` before the next `git pull`.
+- Interview one-liner: "Same base, two targets: a lean non-root API image, and a pipeline image
+  that runs whatever code is in my working copy."
+
+## D-069: `.dockerignore` lists what to send, not what to skip
+- Component: 8
+- Decision: `.dockerignore` starts with `*` (ignore everything), then allows `api/`,
+  `data/processed/`, and `requirements.txt`.
+- Why: Everything sent to Docker can end up in an image. With an allowlist, a new file such as
+  `.env` (which holds `DATABASE_URL`) or a large dump in `data/raw/` is left out unless someone
+  adds it on purpose. It also keeps the build context small: the 9 MB dataset and `.git` are
+  never sent.
+- Alternatives considered: A denylist of `.env`, `.venv`, `.git`, and so on (every new file is
+  included until someone remembers to list it).
+- Trade-off: A new folder the image needs must be added in two places, the Dockerfile and
+  `.dockerignore`. A test checks that the file still starts with `*` and never allows `.env`.
+- Interview one-liner: "Default-deny for the build context, so secrets can't leak into an
+  image by accident."
+
+## D-070: Render runs the API on its Python runtime, with the version from `.python-version`
+- Component: 8
+- Decision: `render.yaml` uses `runtime: python` with `pip install -r api/requirements.txt` and
+  uvicorn on `$PORT`, not the Dockerfile. It sets no `PYTHON_VERSION`, so Render reads `3.13`
+  from `.python-version` and uses the newest 3.13 release.
+- Why: The native runtime skips building a 640 MB image (measured) on every deploy, and its
+  two commands are the same ones a reader runs locally. Render ranks `PYTHON_VERSION` above
+  `.python-version` and needs a full version like `3.13.5` there, so setting it would create a
+  second place to update. One file now sets Python for local development, CI
+  (`python-version-file`), Docker (a test checks the Dockerfile's `ARG`), and Render.
+- Alternatives considered: `runtime: docker` (a full image build on every deploy). Pinning
+  `PYTHON_VERSION: 3.13.5` (exact, but drifts from `.python-version`).
+- Trade-off: Render may move to a newer 3.13 patch release without a commit here. The Docker
+  image is tested in CI but not what production runs.
+- Interview one-liner: "Production uses the platform's Python runtime, and one file decides the
+  Python version everywhere."
+
+## D-071: Render deploys on every commit
+- Component: 8
+- Decision: `autoDeployTrigger: commit`.
+- Why: The weekly refresh pushes with the workflow's own token, and GitHub starts no workflows
+  for that push, so the data commit never gets CI checks. With `checksPass`, Render waits for
+  checks to pass, and it is not clear that a commit with no checks would ever deploy. Then the
+  live API could keep serving last week's data. The data commit only changes files that the
+  next CI run on `main` covers.
+- Alternatives considered: `checksPass` (safer for code changes, but risks never deploying the
+  data refresh). `off` (every deploy by hand).
+- Trade-off: A commit that breaks the API is deployed before CI finishes. Render's health check
+  limits the damage: a deploy whose `/health` does not answer never receives traffic, and the
+  previous deploy keeps serving.
+- Interview one-liner: "Deploy on every commit, and let the health check stop a broken deploy
+  from taking traffic."
+
+## D-072: CI starts the API image and calls `/health`
+- Component: 8
+- Decision: A `docker` job in `ci.yml` validates `docker-compose.yml`, builds both targets, runs
+  the API image, and calls `/health` with `curl` (up to 10 retries, one second apart).
+- Why: A successful build only proves the files were copied. Starting the container also
+  proves the image can import the app, find the data files, and listen on `$PORT`. For example,
+  a typo in the start command (`api.mian:app`) builds fine, but the container stops with
+  "Could not import module", so `/health` fails.
+- Alternatives considered: Build only (what the spec requires, but it misses startup errors).
+  `docker/build-push-action` (adds caching, but adds another action to keep up to date).
+- Trade-off: About a minute of extra CI time per push, with no layer cache between runs.
+- Interview one-liner: "CI doesn't just build the image, it boots it and checks that it
+  answers."

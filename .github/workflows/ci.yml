@@ -57,3 +57,25 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+  # Builds both Docker images and checks that the API image really serves /health.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check docker-compose.yml
+        run: docker compose config --quiet
+
+      - name: Build the pipeline image
+        run: docker build --target pipeline -t anipulse-pipeline .
+
+      - name: Build the API image
+        run: docker build --target api -t anipulse-api .
+
+      - name: Start the API and call /health
+        run: |
+          docker run -d --name api -p 8000:8000 anipulse-api
+          # On failure, print the container's log, which says why it didn't start.
+          curl --retry 10 --retry-all-errors --retry-delay 1 -fsS http://localhost:8000/health \
+            || { docker logs api; exit 1; }

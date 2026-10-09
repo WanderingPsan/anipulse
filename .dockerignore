@@ -1,0 +1,7 @@
+# Send Docker nothing except what the Dockerfile copies. Listing what is allowed (instead of
+# what is not) means a new secret or big file can never slip into an image by accident.
+*
+!api/
+!data/processed/
+!requirements.txt
+**/__pycache__

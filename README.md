@@ -31,5 +31,36 @@ Then open http://127.0.0.1:8000/docs. Endpoints: `GET /health`, `GET /anime/sear
 `GET /anime/{mal_id}`, and `GET /recommend/{mal_id}?k=10`. Set `ANIPULSE_DATA_DIR` to read the
 files from another folder.
 
+## Run with Docker
+
+With Docker Desktop running, from the repo root:
+
+```
+docker compose up --build api
+```
+
+This builds the API image from `Dockerfile` (Python slim, non-root user, the API code and
+`data/processed/` only) and serves it on http://127.0.0.1:8000. Stop it with Ctrl+C.
+
+To rebuild the data the same way the weekly refresh does (create the tables, load the CSV and
+4 pages from the Tenrai API, run the analysis and the recommender) against a Postgres
+container:
+
+```
+docker compose run --rm pipeline
+```
+
+The outputs land in your own `data/processed/` and `analysis/FINDINGS.md`. The weekly refresh
+commits those same files, so undo a local run before your next `git pull`, or the pull fails
+with "local changes would be overwritten":
+
+```
+git restore data/processed analysis/FINDINGS.md
+```
+
+`render.yaml` describes the hosted API: a free Render web service that installs
+`api/requirements.txt`, starts uvicorn on Render's `$PORT`, checks `/health` before switching
+traffic to a new deploy, and takes its Python version from `.python-version`.
+
 Code is under the MIT License (see `LICENSE`). Data files are under the ODbL v1.0 (see
 `DATA_LICENSE.md`).

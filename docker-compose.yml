@@ -1,4 +1,5 @@
-# Local PostgreSQL for development. Start it with: docker compose up -d db
+# Local services: Postgres (db), the API (api), and the one-shot data rebuild (pipeline).
+# Start the database with: docker compose up -d db
 # The credentials match DATABASE_URL in .env.example.
 services:
   db:
@@ -18,6 +19,41 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # The API, built from the Dockerfile. Start it with: docker compose up api
+  # It reads the files in data/processed/ that were copied into the image, so it needs no
+  # database. Rebuild with --build to pick up new code or data.
+  api:
+    build:
+      context: .
+      target: api
+    ports:
+      - "8000:8000"
+
+  # One-shot data rebuild, the same steps as the weekly refresh workflow.
+  # Run it with: docker compose run --rm pipeline
+  # The profile keeps a plain "docker compose up" from starting it.
+  pipeline:
+    build:
+      context: .
+      target: pipeline
+    profiles: [pipeline]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Inside Compose, the database's host name is its service name, not localhost.
+      # This value wins over .env, because load_dotenv() never overrides a set variable.
+      DATABASE_URL: postgresql+psycopg://anipulse:anipulse@db:5432/anipulse
+    volumes:
+      # The repo is mounted, so outputs land in your own data/processed/ and
+      # analysis/FINDINGS.md.
+      - .:/app
+    command: >-
+      sh -c "python -m db.init
+      && python -m pipeline.run --base csv --api-pages 4
+      && python -m analysis.run
+      && python -m recommender.build"
 
 volumes:
   pgdata:

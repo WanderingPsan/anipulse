@@ -1,0 +1,79 @@
+# Rebuilds the data every Monday: load the CSV, refresh the top anime from the live API,
+# rerun the analysis and the recommender, then commit the new files to main.
+name: Weekly refresh
+
+on:
+  schedule:
+    - cron: "17 13 * * 1" # Mondays 13:17 UTC
+  workflow_dispatch:
+
+# Needed to push the refreshed files back to the repo.
+permissions:
+  contents: write
+
+# Two refreshes at once would race to push, so the second one waits.
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: anipulse
+          POSTGRES_PASSWORD: anipulse
+          POSTGRES_DB: anipulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U anipulse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://anipulse:anipulse@localhost:5432/anipulse
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Create tables
+        run: python -m db.init
+
+      # Exits 1 only if the CSV base load fails. A live API outage is reported in the log
+      # and the run continues with the CSV data, so it does not fail the workflow.
+      - name: Load data
+        run: python -m pipeline.run --base csv --api-pages 4
+
+      - name: Run the analysis
+        run: python -m analysis.run
+
+      - name: Build recommendations
+        run: python -m recommender.build
+
+      # FINDINGS.md is committed with the data so its numbers always match the data.
+      - name: Commit and push if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/processed analysis/FINDINGS.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "data: weekly refresh"
+          # Someone may have merged to main while this ran, so replay our commit on top.
+          git pull --rebase origin main
+          git push origin HEAD:main

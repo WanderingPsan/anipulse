@@ -943,3 +943,92 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
 - Trade-off: Someone looking for an obscure title must lower the members filter first.
 - Interview one-liner: "Filters only filter when you touch them, and the default view matches
   the analysis population's member cutoff."
+
+## D-062: The data refreshes weekly, not daily
+- Component: 7
+- Decision: The refresh workflow runs every Monday at 13:17 UTC, plus on demand from the
+  Actions tab.
+- Why: Each refresh adds a commit to `main`. Daily commits would bury the
+  one-commit-per-component history under hundreds of "data: weekly refresh" commits. MyAnimeList
+  scores move slowly, so a week of staleness changes almost nothing in the findings. The odd
+  minute (13:17) avoids the top of the hour, when GitHub's scheduler is busiest and delays runs.
+- Alternatives considered: Daily (noisy history, about 7 times the repo growth). Monthly (the
+  dashboard's "last updated" date would look abandoned).
+- Trade-off: Data can be up to a week old.
+- Interview one-liner: "Weekly matches how fast scores actually change and keeps the git history
+  readable."
+
+## D-063: The refresh commits FINDINGS.md along with data/processed/
+- Component: 7
+- Decision: The refresh commit includes `analysis/FINDINGS.md` as well as `data/processed/`.
+- Why: `python -m analysis.run` rewrites FINDINGS.md from the database. If only the data files
+  were committed, the first refresh that moved a number would leave the written findings
+  describing older data than the dashboard shows.
+- Alternatives considered: Committing only `data/processed/` and regenerating FINDINGS.md by
+  hand (it would drift without anyone noticing).
+- Trade-off: FINDINGS.md changes every week, at least its "Data last updated" line.
+- Interview one-liner: "The report and the data are written by the same run and committed
+  together, so they can't disagree."
+
+## D-064: CI runs the database tests against a real Postgres 16
+- Component: 7
+- Decision: The CI job starts a `postgres:16` service container and sets `DATABASE_URL`, so the
+  tests marked `db` (loading, upserts, the analysis SQL) run on every push instead of being
+  skipped.
+- Why: Those tests check things only a real database can: `ON CONFLICT` upserts, foreign keys,
+  and the exact SQL the analysis runs. Postgres 16 matches the version used locally and in
+  `docker-compose.yml`. A health check makes the job wait until the database accepts
+  connections.
+- Alternatives considered: Skipping `db` tests in CI (the riskiest code would go untested).
+  SQLite (a different SQL dialect: the analysis queries use Postgres features such as `::` casts and aggregate functions SQLite lacks, and the loader uses the Postgres insert dialect).
+- Trade-off: Each CI run spends a few seconds starting the container.
+- Interview one-liner: "CI tests the SQL against the same database engine production uses, not
+  a stand-in."
+
+## D-065: Every refresh rebuilds from an empty database and usually commits
+- Component: 7
+- Decision: The workflow starts from an empty Postgres each week, loads everything, and commits
+  if `git diff --cached --quiet` finds any change. It pushes with the built-in `GITHUB_TOKEN`
+  as `github-actions[bot]`, after `git pull --rebase` in case `main` moved during the run.
+- Why: A runner keeps nothing between runs, so rebuilding is the only option without paying
+  for a hosted database. Because every row gets a fresh `updated_at`, `metadata.json` and
+  FINDINGS.md always change, so in practice there is a commit every week. That is honest: the
+  data really was refreshed. A push made with `GITHUB_TOKEN` does not start other workflows,
+  so the data commit cannot trigger CI or another refresh.
+- Alternatives considered: Ignoring changes that only touch timestamps (more code to decide
+  what "really" changed, for little gain). A hosted database (costs money, and needs a secret).
+- Trade-off: Repo growth. Today the committed files total about 2.3 MB (catalog.parquet 1.3 MB,
+  recommendations.parquet 0.9 MB, the rest under 0.1 MB). Parquet is already compressed, so a
+  week where both big files change adds about 2.3 MB, at most about 120 MB a year. In a local
+  rehearsal of one refresh, all 16 files changed.
+- Interview one-liner: "Runners are stateless, so the refresh rebuilds from scratch and commits
+  the result. The bot's token can't trigger workflows, so it can't loop."
+
+## D-066: The pipeline's exit code decides whether the refresh fails
+- Component: 7
+- Decision: The workflow runs `python -m pipeline.run` as a normal step, with no
+  `continue-on-error`.
+- Why: The pipeline already returns 0 when the live API is down (it logs the failed pages and
+  keeps the CSV data) and 1 when the CSV base load fails. So an API outage produces a normal
+  refresh from the CSV, and a broken base load stops the job before anything is committed.
+- Alternatives considered: `continue-on-error` on the load step (it would also hide a failed
+  base load and commit empty or stale files).
+- Trade-off: Someone has to read the run's log to notice that the API part failed, because the
+  run still shows green.
+- Interview one-liner: "The failure policy lives in the code's exit codes, so the workflow
+  stays a plain list of commands."
+
+## D-067: Use the newest major versions of the GitHub actions
+- Component: 7
+- Decision: Both workflows use `actions/checkout@v7` and `actions/setup-python@v7`.
+- Why: GitHub removed Node 20 from its runners in September 2026, so older action versions
+  built on it no longer run. v7's changes don't affect these workflows: checkout v7 only blocks
+  fork code under `pull_request_target` and `workflow_run` (not used here), and setup-python
+  v7 only removed the `pip-install` input (not used here). `python-version-file` reads
+  `.python-version`, so CI and local development use the same Python.
+- Alternatives considered: Pinning each action to a commit SHA (safer against a tampered tag,
+  but harder for a reader to see which version runs).
+- Trade-off: A major-version tag moves when the action publishes fixes, so a run can change
+  without a commit here.
+- Interview one-liner: "Current major versions, and Python comes from the same file the
+  developers use."

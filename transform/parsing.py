@@ -14,7 +14,7 @@ import pandas as pd
 # "1 hr 55 min" -> hr=1, min=55. Each unit is optional, and "min." with a dot also matches.
 _DURATION_PART = re.compile(r"(\d+)\s*(hr|min|sec)")
 
-# Toast's rule for filling a missing season from the air date's month.
+# The rule for filling a missing season from the air date's month.
 _SEASON_BY_MONTH = {
     1: "winter",
     2: "winter",

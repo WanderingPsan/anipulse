@@ -375,7 +375,7 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   Anything shorter than half a minute becomes 1, not 0.
 - Why: 734 rows give their length in seconds ("33 sec per ep"). The schema stores whole
   minutes, and 0 would read as "no length", which is wrong.
-- Alternatives considered: Storing seconds (changes Toast's schema). Treating seconds-long
+- Alternatives considered: Storing seconds (changes the schema's unit). Treating seconds-long
   titles as unknown (throws away real data).
 - Trade-off: A 33-second episode and a 1-minute episode look the same.
 - Interview one-liner: "I parsed every duration format in the data and rounded to the
@@ -1187,3 +1187,18 @@ One entry per meaningful decision: what was chosen, why, and what it costs.
   longer shown on this page. The API's `/anime/{mal_id}` still returns it.
 - Interview one-liner: "I cut the table to the five columns people actually compare and fixed
   their widths, so it fits a laptop screen without sideways scrolling."
+
+## D-077: pytest searches the whole repo for tests
+- Component: 10
+- Decision: `pyproject.toml` no longer sets `testpaths = ["tests"]`. pytest now starts at the
+  repo root and collects every `test_*.py` file it finds.
+- Why: A test file can live next to the code it checks when that is clearer, and pytest still
+  finds it. Every test in this repo is still in `tests/`, so `python -m pytest -q` runs the
+  same tests as before.
+- Alternatives considered: Listing each test folder in `testpaths` (one more line to keep in
+  sync every time a folder is added).
+- Trade-off: pytest walks a few more folders when it starts. It skips `.venv` and hidden
+  folders on its own, and `data/` holds no Python files, so the difference is a fraction of a
+  second.
+- Interview one-liner: "I let pytest discover tests from the repo root, so a test is never
+  silently left out because its folder wasn't listed."

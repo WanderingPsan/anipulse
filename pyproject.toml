@@ -13,7 +13,6 @@ target-version = "py313"
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
 # Lets tests import project packages (like ingest) from the repo root.
 pythonpath = ["."]
 markers = [

@@ -7,10 +7,10 @@
   "tag_features": 74,
   "recommendation_rows": 270238,
   "titles_with_fewer_than_k": 37,
-  "tag_overlap_at_10": 0.9324,
-  "coverage_of_recommendable": 0.9619,
-  "coverage_of_all_titles": 0.4504,
-  "build_runtime_seconds": 54.4,
+  "tag_overlap_at_10": 0.9326,
+  "coverage_of_recommendable": 0.9623,
+  "coverage_of_all_titles": 0.4506,
+  "build_runtime_seconds": 49.7,
   "median_text_cosine": 0.075,
   "median_tag_cosine": 0.772,
   "spot_checks": {
@@ -24,9 +24,9 @@
     "Fullmetal Alchemist: Brotherhood": [
       "Ta ga Tame no Alchemist",
       "100-man no Inochi no Ue ni Ore wa Tatteiru 2nd Season",
-      "Kino no Tabi: The Beautiful World - Nanika wo Suru Tame ni - Life Goes On.",
       "Edens Zero 2nd Season",
-      "Dragon Quest: Yuusha Abel Densetsu"
+      "Kino no Tabi: The Beautiful World - Nanika wo Suru Tame ni - Life Goes On.",
+      "Arion"
     ],
     "Steins;Gate": [
       "Arata naru Sekai: World's/Start/Load/End",
@@ -74,8 +74,8 @@
     ],
     "Shingeki no Kyojin": [
       "Shingeki no Kyojin Season 2",
-      "Shingeki no Kyojin: The Final Season Part 2",
       "Shingeki no Kyojin Season 3",
+      "Shingeki no Kyojin: The Final Season Part 2",
       "Shingeki no Kyojin Season 3 Part 2",
       "Shingeki no Kyojin: The Final Season - Kanketsu-hen"
     ],

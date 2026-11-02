@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-10-26T19:23:22+00:00",
-  "data_last_updated": "2026-10-26T19:23:08+00:00",
+  "generated_at": "2026-11-02T22:21:44+00:00",
+  "data_last_updated": "2026-11-02T22:21:31+00:00",
   "row_counts": {
     "anime": 27055,
     "genres": 78,
-    "anime_genres": 75100,
+    "anime_genres": 75099,
     "companies": 2382,
-    "anime_companies": 51670
+    "anime_companies": 51664
   },
   "data_source_counts": {
     "api": 100,
     "kaggle": 26955
   },
-  "analysis_population": 12668
+  "analysis_population": 12667
 }

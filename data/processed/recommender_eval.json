@@ -10,7 +10,7 @@
   "tag_overlap_at_10": 0.9328,
   "coverage_of_recommendable": 0.9626,
   "coverage_of_all_titles": 0.4507,
-  "build_runtime_seconds": 50.0,
+  "build_runtime_seconds": 53.3,
   "median_text_cosine": 0.075,
   "median_tag_cosine": 0.772,
   "spot_checks": {
